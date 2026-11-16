@@ -51,7 +51,12 @@ fn legacy_skipped_rust_source_is_admitted_then_reused() {
     let expected = portable_il::semantic_digest(&cold.files[0], &cold.interner);
     for attempt in 0..2 {
         let run = CacheRun::with_limit(&cache, super::super::DEFAULT_MAX_BYTES);
-        let warm = build_raw_corpus_cached(&[source.as_path()], &[], &run);
+        let warm = build_raw_corpus_cached(
+            &[source.as_path()],
+            &[],
+            &run,
+            nose_frontend::InlineSuppression::Respect,
+        );
         warm.corpus.ensure_complete().unwrap();
         assert!(warm.corpus.skipped_sources.is_empty());
         assert_eq!(warm.corpus.files.len(), 1);

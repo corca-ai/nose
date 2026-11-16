@@ -199,3 +199,47 @@ fn query_base_malformed_ignore_fails_even_when_diff_is_empty() {
 
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn inline_suppression_base_witnesses_keep_policy_with_and_without_cache() {
+    let dir = make_mode_project("base_inline_suppression");
+    for name in ["renamed_a.py", "renamed_b.py"] {
+        let path = dir.join(name);
+        let source = fs::read_to_string(&path).unwrap();
+        fs::write(path, format!("# nose-ignore\n{source}")).unwrap();
+    }
+    init_git_repo(&dir);
+    let path = dir.join("renamed_a.py");
+    let source = fs::read_to_string(&path).unwrap();
+    fs::write(
+        path,
+        source.replace("total = total + item * item", "total = total - item * item"),
+    )
+    .unwrap();
+    for extra in [
+        vec!["--mode", "semantic", "--include-inline-suppressed"],
+        vec![
+            "--mode",
+            "semantic",
+            "--include-inline-suppressed",
+            "--cache-dir",
+            ".cache",
+        ],
+        vec![
+            "--mode",
+            "semantic",
+            "--include-inline-suppressed",
+            "--cache-dir",
+            ".cache",
+        ],
+    ] {
+        let report = query_base_json_value(&dir, &extra);
+        let finding =
+            find_item_by_lane_and_files(&report, "base-divergence", "changed", &["renamed_a.py"]);
+        assert_site_files(finding, "not_updated", &["renamed_b.py"]);
+        let witness = &finding["changed"][0]["semantic_change"];
+        assert_eq!(witness["status"], "complete", "{witness}");
+        assert_eq!(witness["change_kind"], "replacement", "{witness}");
+    }
+    let _ = fs::remove_dir_all(dir);
+}

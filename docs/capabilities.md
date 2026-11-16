@@ -165,6 +165,7 @@ nose capabilities
       "ci_fail_gate": true,
       "family_drilldown": true,
       "inline_suppression": true,
+      "include_inline_suppressed": true,
       "multi_root": true,
       "query_analysis_capture_v1": true,
       "query_analysis_changes_v1": true,
@@ -218,6 +219,13 @@ nose capabilities
         "inspect-review"
       ],
       "capture": "nose query <path> --save-analysis FILE",
+      "inline_suppression": {
+        "flag": "--include-inline-suppressed",
+        "profile_key": "inline-suppression",
+        "default": "respect",
+        "values": ["respect", "include"],
+        "legacy": "not-recorded; recapture for include"
+      },
       "compare": "nose query --before FILE --after FILE [terms...]",
       "correspondence_values": [
         "matched",
@@ -567,6 +575,7 @@ Version 8 defines these `query.capabilities` keys:
 | `ci_fail_gate` | `--fail-on any|new` gate behavior is supported. |
 | `family_drilldown` | Opening a family with `id=<fam>` / `at=FILE:LINE` is supported. |
 | `inline_suppression` | Source-level `nose-ignore` markers are supported. |
+| `include_inline_suppressed` | `query --include-inline-suppressed` includes marked units in detection; composes with output, watch, cache and capture. |
 | `multi_root` | `nose query --root <path>` / `-r <path>` repeatable root analysis is supported. |
 | `query_base_gate_fail_default` | `base=<ref>` emits `gate.fail_default` and uses it for the default divergent-edit CI gate. |
 | `query_base_json_v8` | `base=<ref> --format json` emits schema v8. Wrappers should also verify `schemas.query_json` contains `8`. |

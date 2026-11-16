@@ -14,6 +14,11 @@ cache versions, so old entries cannot silently retain outdated production/test s
 Conventional type-test path updates invalidate derived-unit keys because test-path
 evidence also controls large-test-file admission; raw IL remains reusable.
 
+Inline suppression policy participates in raw-IL identity and warm snapshot
+selection. Switching `--include-inline-suppressed` on or off in the same cache
+directory preserves clean-query results, including unchanged marked sources and
+watch leaf updates. Earlier source/snapshot cache versions are rebuilt safely.
+
 ## When to use it
 
 Use a persistent cache for:

@@ -73,7 +73,10 @@ impl FastUnitSession {
         self.begin_revision();
         let source_index = *self.source_path_indexes.get(&path_key(path))?;
         let path = self.source_files[source_index].path.clone();
-        let current = refreshed_source(&self.source_files[source_index])?;
+        let current = refreshed_source(
+            &self.source_files[source_index],
+            self.snapshot.inline_suppression,
+        )?;
         if current.digest == self.source_files[source_index].digest
             && current.source_kind == self.source_files[source_index].source_kind
         {
@@ -194,9 +197,12 @@ impl FastUnitSession {
     }
 }
 
-fn refreshed_source(previous: &CachedSourceFile) -> Option<CachedSourceFile> {
+fn refreshed_source(
+    previous: &CachedSourceFile,
+    policy: nose_frontend::InlineSuppression,
+) -> Option<CachedSourceFile> {
     let bytes = std::fs::read(&previous.path).ok()?;
-    let digest = source::analysis_digest(&previous.path, previous.lang, &bytes);
+    let digest = source::analysis_digest(&previous.path, previous.lang, &bytes, policy);
     Some(CachedSourceFile {
         path: previous.path.clone(),
         logical_path: previous.logical_path.clone(),

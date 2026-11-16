@@ -50,6 +50,7 @@ impl WitnessBuilder<'_> {
         let base_root = self.base_root;
         let current_root = self.current_root;
         let opts = self.opts;
+        let policy = self.inline_suppression;
         let retained_base_interner = self.retained_base_interner.clone();
         let jobs = keys
             .into_iter()
@@ -95,7 +96,7 @@ impl WitnessBuilder<'_> {
                                 known_exact_safety,
                                 value_context,
                             ),
-                            _ => project_file(&root.join(&path), &path, &opts),
+                            _ => project_file(&root.join(&path), &path, &opts, policy),
                         },
                     };
                     ((tree, path), state)
@@ -226,13 +227,23 @@ impl WitnessBuilder<'_> {
                             .unwrap_or_default(),
                         self.retained_base_value_contexts.remove(relative_path),
                     ),
-                    _ => project_file(&root.join(relative_path), relative_path, &self.opts),
+                    _ => project_file(
+                        &root.join(relative_path),
+                        relative_path,
+                        &self.opts,
+                        self.inline_suppression,
+                    ),
                 }
             } else {
                 self.preprojected_current_files
                     .remove(relative_path)
                     .unwrap_or_else(|| {
-                        project_file(&root.join(relative_path), relative_path, &self.opts)
+                        project_file(
+                            &root.join(relative_path),
+                            relative_path,
+                            &self.opts,
+                            self.inline_suppression,
+                        )
                     })
             };
             self.files.insert(key.clone(), state);
@@ -253,4 +264,75 @@ fn tree_order(tree: Tree) -> u8 {
         Tree::Base => 0,
         Tree::Current => 1,
     }
+}
+
+pub(in crate::divergence) fn preproject_current_files(
+    current_root: &Path,
+    changed: &HashMap<String, Vec<(u32, u32)>>,
+    opts: &nose_detect::DetectOptions,
+    policy: nose_frontend::InlineSuppression,
+) -> PreprojectedCurrentFiles {
+    let mut paths = changed.keys().cloned().collect::<Vec<_>>();
+    paths.sort();
+    let files = paths
+        .into_iter()
+        .take(MAX_FILES)
+        .map(|path| {
+            let mut state = project_file(&current_root.join(&path), &path, opts, policy);
+            prepare_file_projection(
+                &mut state,
+                changed.get(&path).map(Vec::as_slice).unwrap_or(&[]),
+            );
+            (path, state)
+        })
+        .collect();
+    PreprojectedCurrentFiles(files)
+}
+
+fn project_file(
+    absolute_path: &Path,
+    relative_path: &str,
+    opts: &nose_detect::DetectOptions,
+    policy: nose_frontend::InlineSuppression,
+) -> LoadState {
+    let Some(lang) = Lang::from_file_path(absolute_path) else {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    };
+    // Container/declarative projections need region-aware source coordinates or a
+    // non-imperative fingerprint; neither may be silently interpreted as a value DAG.
+    if matches!(lang, Lang::Css | Lang::Vue | Lang::Svelte | Lang::Html) {
+        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
+    }
+    let source = match fs::read(absolute_path) {
+        Ok(source) => source,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return LoadState::Failed(SemanticProjectionStatus::Missing)
+        }
+        Err(_) => return LoadState::Failed(SemanticProjectionStatus::ReadFailed),
+    };
+    if source.len() > MAX_FILE_BYTES {
+        return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
+    }
+    let interner = Interner::new();
+    let raw = match nose_frontend::lower_source_with_policy(
+        FileId(0),
+        relative_path,
+        &source,
+        lang,
+        &interner,
+        policy,
+    ) {
+        Ok(raw) => raw,
+        Err(_) => return LoadState::Failed(SemanticProjectionStatus::LowerFailed),
+    };
+    let normalized = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions {
+            cfg_norm: opts.cfg_norm,
+            dce: opts.dce,
+            ..Default::default()
+        },
+    );
+    analysis::finish_file_projection(interner, normalized, HashMap::new(), None)
 }

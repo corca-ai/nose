@@ -5,15 +5,15 @@
 
 mod analysis;
 mod loading;
+pub(super) use loading::preproject_current_files;
 mod source_matches;
 pub(crate) use source_matches::RegionMatches;
 mod variant_projection;
 
 use self::analysis::{
     analyze_change, caveat_for_projection, finish_witness, node_hashes, prepare_file_projection,
-    project_file, project_normalized_file, project_unit, projected,
-    select_current_by_change_or_distance, unavailable, unit_matches_enclosing, unit_matches_site,
-    PreparedChange, SharedHashes,
+    project_normalized_file, project_unit, projected, select_current_by_change_or_distance,
+    unavailable, unit_matches_enclosing, unit_matches_site, PreparedChange, SharedHashes,
 };
 use super::git::DiffEntry;
 use super::*;
@@ -48,6 +48,7 @@ const CAPS: SemanticWitnessCaps = SemanticWitnessCaps {
 pub(super) struct PreprojectedCurrentFiles(HashMap<String, LoadState>);
 
 pub(super) struct SemanticWitnessInputs<'a> {
+    pub(super) inline_suppression: nose_frontend::InlineSuppression,
     pub(super) base_root: &'a Path,
     pub(super) current_root: &'a Path,
     pub(super) base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
@@ -56,28 +57,6 @@ pub(super) struct SemanticWitnessInputs<'a> {
     pub(super) opts: &'a nose_detect::DetectOptions,
     pub(super) retained_base: Option<RetainedNormalizedCorpus>,
     pub(super) preprojected_current: PreprojectedCurrentFiles,
-}
-
-pub(super) fn preproject_current_files(
-    current_root: &Path,
-    changed: &HashMap<String, Vec<(u32, u32)>>,
-    opts: &nose_detect::DetectOptions,
-) -> PreprojectedCurrentFiles {
-    let mut paths = changed.keys().cloned().collect::<Vec<_>>();
-    paths.sort();
-    let files = paths
-        .into_iter()
-        .take(MAX_FILES)
-        .map(|path| {
-            let mut state = project_file(&current_root.join(&path), &path, opts);
-            prepare_file_projection(
-                &mut state,
-                changed.get(&path).map(Vec::as_slice).unwrap_or(&[]),
-            );
-            (path, state)
-        })
-        .collect();
-    PreprojectedCurrentFiles(files)
 }
 
 pub(super) fn enrich_semantic_change_witnesses(
@@ -229,6 +208,7 @@ impl ProjectionAttempt {
 }
 
 struct WitnessBuilder<'a> {
+    inline_suppression: nose_frontend::InlineSuppression,
     base_root: &'a Path,
     current_root: &'a Path,
     base_changed: &'a HashMap<String, Vec<(u32, u32)>>,
@@ -263,6 +243,7 @@ impl UnavailableChange {
 impl<'a> WitnessBuilder<'a> {
     fn new(inputs: SemanticWitnessInputs<'a>) -> Self {
         let SemanticWitnessInputs {
+            inline_suppression,
             base_root,
             current_root,
             base_changed,
@@ -318,6 +299,7 @@ impl<'a> WitnessBuilder<'a> {
             })
             .unwrap_or_default();
         Self {
+            inline_suppression,
             base_root,
             current_root,
             base_changed,

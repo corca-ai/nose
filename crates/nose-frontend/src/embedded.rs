@@ -8,6 +8,7 @@
 //! buffer is valid JS/TS (the markup becomes whitespace). Reported spans therefore
 //! point at the right lines in the original `.vue`/`.svelte`/`.html` file.
 
+use crate::InlineSuppression;
 use nose_il::{FileId, Il, Interner, Lang, UnitContainerKind};
 
 /// Lower an embedded-script file: extract its `<script>` blocks, parse them as
@@ -50,6 +51,7 @@ pub(crate) fn lower_regions(
     src: &[u8],
     container: Lang,
     interner: &Interner,
+    policy: InlineSuppression,
 ) -> anyhow::Result<Vec<Il>> {
     let mut out = Vec::new();
 
@@ -82,6 +84,10 @@ pub(crate) fn lower_regions(
         )?);
     }
 
+    for il in &mut out {
+        policy.apply(il);
+    }
+
     // Markup tree (the whole document parsed as HTML — a `.vue`/`.svelte` `<template>`
     // parses as an element too). `<script>`/`<style>` internals are skipped by the HTML
     // frontend, so they are not double-counted with the regions above.
@@ -91,13 +97,13 @@ pub(crate) fn lower_regions(
         crate::html::lower_with_container(file, path, src, container_kind(container), interner)
     };
     {
-        let il = markup?;
+        let mut il = markup?;
+        policy.apply(&mut il);
         if !il.units.is_empty() {
             out.push(il);
         }
     }
 
-    let _ = container;
     Ok(out)
 }
 
@@ -470,17 +476,24 @@ mod style_region_tests {
 
     fn css_rule_units(src: &[u8], container: Lang) -> usize {
         let i = Interner::new();
-        lower_regions(FileId(0), "c", src, container, &i)
-            .unwrap()
-            .iter()
-            .filter(|il| il.meta.lang == Lang::Css)
-            .flat_map(|il| {
-                il.units
-                    .iter()
-                    .filter(|u| il.node(u.root).kind == NodeKind::CssRule)
-                    .map(move |_| ())
-            })
-            .count()
+        lower_regions(
+            FileId(0),
+            "c",
+            src,
+            container,
+            &i,
+            InlineSuppression::Respect,
+        )
+        .unwrap()
+        .iter()
+        .filter(|il| il.meta.lang == Lang::Css)
+        .flat_map(|il| {
+            il.units
+                .iter()
+                .filter(|u| il.node(u.root).kind == NodeKind::CssRule)
+                .map(move |_| ())
+        })
+        .count()
     }
 
     #[test]
@@ -497,7 +510,15 @@ mod style_region_tests {
     fn vue_extracts_both_script_and_style_regions() {
         let i = Interner::new();
         let vue = b"<template><div/></template>\n<script>export function f(n){return n+1;}</script>\n<style>.a { color: red; padding: 4px; }</style>";
-        let ils = lower_regions(FileId(0), "C.vue", vue, Lang::Vue, &i).unwrap();
+        let ils = lower_regions(
+            FileId(0),
+            "C.vue",
+            vue,
+            Lang::Vue,
+            &i,
+            InlineSuppression::Respect,
+        )
+        .unwrap();
         assert!(ils.iter().any(|il| il.meta.lang == Lang::Css), "css region");
         assert!(
             ils.iter()

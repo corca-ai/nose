@@ -21,7 +21,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-const SNAPSHOT_SCHEMA: u32 = 2;
+const SNAPSHOT_SCHEMA: u32 = 3;
 
 mod bootstrap;
 pub(crate) use bootstrap::open_session;
@@ -86,23 +86,27 @@ pub(super) fn store_snapshot(run: &CacheRun, opts: &DetectOptions, snapshot: &Ca
     let Ok(payload) = rmp_serde::to_vec_named(&stored) else {
         return;
     };
-    run.store(&snapshot_slot(opts), SNAPSHOT_SCHEMA, &payload);
+    run.store(
+        &snapshot_slot(opts, snapshot.inline_suppression),
+        SNAPSHOT_SCHEMA,
+        &payload,
+    );
 }
 
 pub(super) fn try_build(
     roots: &[&Path],
     exclude: &[String],
-    dir: &Path,
-    max_bytes: u64,
+    run: CacheRun,
     opts: &DetectOptions,
     semantic_pack_digest: [u8; 32],
+    policy: nose_frontend::InlineSuppression,
 ) -> Option<FastCachedUnits> {
-    let run = CacheRun::with_limit(dir, max_bytes);
     let workspace_digest = *source::workspace_digest(roots).as_bytes();
     run.set_workspace(workspace_digest);
-    let bytes = run.load(&snapshot_slot(opts), SNAPSHOT_SCHEMA)?;
+    let bytes = run.load(&snapshot_slot(opts, policy), SNAPSHOT_SCHEMA)?;
     let stored = rmp_serde::from_slice::<StoredSnapshot>(&bytes).ok()?;
     if stored.schema != SNAPSHOT_SCHEMA
+        || stored.snapshot.inline_suppression != policy
         || !stored.snapshot.fast_safe
         || stored.snapshot.semantic_pack_digest != semantic_pack_digest
         || stored.snapshot.contexts.len() != stored.snapshot.artifacts.len()
@@ -110,7 +114,7 @@ pub(super) fn try_build(
         return None;
     }
     let mut snapshot = stored.snapshot;
-    let current_sources = source::discover_source_files(roots, exclude)?;
+    let current_sources = source::discover_source_files(roots, exclude, policy)?;
     let changed_source = compare_sources(&snapshot.source_files, &current_sources)?;
     let report = super::resolved::fast_invalidation_report(
         &snapshot,
@@ -420,7 +424,8 @@ fn rebuild_leaf(
     }
     let source = std::fs::read(path).ok()?;
     if source_file.path != path
-        || source::analysis_digest(path, source_file.lang, &source).as_bytes()
+        || source::analysis_digest(path, source_file.lang, &source, snapshot.inline_suppression)
+            .as_bytes()
             != &source_file.digest
     {
         return None;
@@ -429,12 +434,13 @@ fn rebuild_leaf(
         return None;
     }
     let interner = Interner::new();
-    let files = nose_frontend::try_lower_source_regions(
+    let files = nose_frontend::try_lower_source_regions_with_policy(
         FileId(0),
         path,
         &source,
         source_file.lang,
         &interner,
+        snapshot.inline_suppression,
     )
     .ok()?;
     if files.len() != previous.len() {
@@ -532,6 +538,10 @@ fn append_unit_keys(keys: &mut Vec<[u8; 32]>, artifact: [u8; 32], path: &str, un
     }
 }
 
-fn snapshot_slot(opts: &DetectOptions) -> String {
-    format!("unit-snapshot/{}", super::options_digest(opts).hex())
+fn snapshot_slot(opts: &DetectOptions, policy: nose_frontend::InlineSuppression) -> String {
+    format!(
+        "unit-snapshot/{}/{}",
+        policy.as_str(),
+        super::options_digest(opts).hex()
+    )
 }

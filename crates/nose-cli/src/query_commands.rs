@@ -277,6 +277,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
         positionals,
         format,
         watch,
+        include_inline_suppressed,
         mode,
         limits,
         exclude,
@@ -317,6 +318,7 @@ pub(super) fn run_query_cmd(cmd: Cmd) -> Result<()> {
     // The path as the user typed it — every suggested next-command echoes it so the links
     // are runnable verbatim. Multi-root commands echo the explicit root flags.
     let args = QueryArgs {
+        include_inline_suppressed,
         paths,
         min_members,
         min_value,
@@ -374,7 +376,11 @@ fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &st
     let overrides = time_stage("query_surface", || query_surface_overrides(&mut dataset));
     if query_needs_spotclass(q) {
         time_stage("query_spot", || {
-            enrich_graded_witnesses(&mut dataset.families, &dataset.opts)
+            enrich_graded_witnesses(
+                &mut dataset.families,
+                &dataset.opts,
+                args.inline_suppression(),
+            )
         });
     }
     if q.id_full && !query_needs_spotclass(q) {
@@ -391,7 +397,11 @@ fn run_regular_query(args: QueryArgs, terms: &[String], q: &Query, path_arg: &st
             .iter_mut()
             .find(|f| key.as_ref() == Some(&crate::baseline::family_id(f)))
         {
-            enrich_graded_witnesses(std::slice::from_mut(family), &dataset.opts);
+            enrich_graded_witnesses(
+                std::slice::from_mut(family),
+                &dataset.opts,
+                args.inline_suppression(),
+            );
         }
     }
     let mut since_cmp = None;

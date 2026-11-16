@@ -2401,3 +2401,27 @@ threshold with this corpus for both binaries. Its source file remains byte-ident
 to main, SHA-256 `53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
 Remove that stale ID without changing its established numeric-policy decision.
 The three full queries are retained locally in `/tmp/nose-patch-self-{old-tree,base-engine,analysis}.json`.
+
+## Inline suppression policy and 0.22.0 qualification (2026-11-16)
+
+The #1014 candidate reports nineteen substantial default near families within
+value threshold forty and the unchanged budget of twenty. The frozen `e63e6203`
+release binary and the 0.22.0 binary report byte-identical family objects when
+analyzing this same source tree. The default detector has not introduced these
+deltas; they follow the changed source corpus.
+
+Three previously reviewed relations change navigation identity:
+
+| Previous ID | Current ID | Review |
+| --- | --- | --- |
+| `d0d8d7d0a3d81698` | `b67f35c00a438b60` | Adding the test-module declaration moves the analysis Project harness by two lines; both Project bodies retain their earlier content digests. |
+| `22b278f1f3e6c0e7` | `2243ff172880aa06` | Passing the analysis policy through `preload_files` shifts its paired unit-preload phase; the latter body and the shared base-site traversal are unchanged. Preserve the separate file-materialization and unit-projection responsibilities. |
+| `ee3f1774e269c933` | `62b365e33e18d2f0` | The capability table gains the new boolean flag. Report construction and capability inventory retain their separate contracts. |
+
+The reviewed integer/float policy pair `60f0dd6d98436972` returns above the
+threshold at value 41.965 for both binaries. Its source remains byte-identical
+to main, SHA-256
+`53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
+Restore its existing keep-separate judgment without raising the budget or
+accepting new duplicate implementations. The three complete comparison queries
+are retained locally as `/tmp/nose-1014-self-{old-tree,base-engine,head-engine}.json`.

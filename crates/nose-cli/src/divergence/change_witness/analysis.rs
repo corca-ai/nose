@@ -211,47 +211,6 @@ fn analysis_caveats(
     caveats
 }
 
-pub(super) fn project_file(
-    absolute_path: &Path,
-    relative_path: &str,
-    opts: &nose_detect::DetectOptions,
-) -> LoadState {
-    let Some(lang) = Lang::from_file_path(absolute_path) else {
-        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
-    };
-    // Container/declarative projections need region-aware source coordinates or a
-    // non-imperative fingerprint; neither may be silently interpreted as a value DAG.
-    if matches!(lang, Lang::Css | Lang::Vue | Lang::Svelte | Lang::Html) {
-        return LoadState::Failed(SemanticProjectionStatus::Unsupported);
-    }
-    let source = match fs::read(absolute_path) {
-        Ok(source) => source,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return LoadState::Failed(SemanticProjectionStatus::Missing)
-        }
-        Err(_) => return LoadState::Failed(SemanticProjectionStatus::ReadFailed),
-    };
-    if source.len() > MAX_FILE_BYTES {
-        return LoadState::Failed(SemanticProjectionStatus::CapExceeded);
-    }
-    let interner = Interner::new();
-    let raw = match nose_frontend::lower_source(FileId(0), relative_path, &source, lang, &interner)
-    {
-        Ok(raw) => raw,
-        Err(_) => return LoadState::Failed(SemanticProjectionStatus::LowerFailed),
-    };
-    let normalized = nose_normalize::normalize(
-        &raw,
-        &interner,
-        &nose_normalize::NormalizeOptions {
-            cfg_norm: opts.cfg_norm,
-            dce: opts.dce,
-            ..Default::default()
-        },
-    );
-    finish_file_projection(interner, normalized, HashMap::new(), None)
-}
-
 pub(super) fn project_normalized_file(
     absolute_path: &Path,
     interner: Interner,
@@ -278,7 +237,7 @@ pub(super) fn project_normalized_file(
     finish_file_projection(interner, normalized, known_exact_safety, value_context)
 }
 
-fn finish_file_projection(
+pub(super) fn finish_file_projection(
     interner: Interner,
     normalized: nose_il::Il,
     known_exact_safety: HashMap<(UnitKind, u32, u32), bool>,

@@ -5,6 +5,8 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+#[path = "watch/inline_suppression.rs"]
+mod inline_suppression;
 #[path = "watch/inputs.rs"]
 mod inputs;
 
