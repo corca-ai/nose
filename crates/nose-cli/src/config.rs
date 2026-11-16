@@ -133,6 +133,7 @@ pub(crate) fn print_effective(args: &crate::cli_args::QueryArgs) -> anyhow::Resu
             "roots": args.paths, "cache_dir": args.cache_dir,
             "max_candidate_pairs": crate::detect_pipeline::candidate_limit(args.max_candidate_pairs)?,
             "query": {
+                "include-inline-suppressed": args.include_inline_suppressed,
                 "mode": modes, "min-members": settings.min_members,
                 "min-value": settings.min_value, "min-lines": settings.min_lines,
                 "min-size": settings.min_tokens, "sort": settings.sort,

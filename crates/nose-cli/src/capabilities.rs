@@ -248,6 +248,7 @@ fn query_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("ci_fail_gate", true),
         ("family_drilldown", true),
         ("inline_suppression", true),
+        ("include_inline_suppressed", true),
         ("multi_root", true),
         ("query_base_gate_fail_default", true),
         ("query_base_json_v8", true),

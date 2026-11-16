@@ -8,7 +8,8 @@ mod surfaces;
 
 fn il_with_interner(src: &str) -> (Il, Interner) {
     let interner = Interner::default();
-    let il = lower(FileId(0), "t.swift", src.as_bytes(), &interner).expect("lower swift");
+    let il = crate::lower_source(FileId(0), "t.swift", src.as_bytes(), Lang::Swift, &interner)
+        .expect("lower swift");
     (il, interner)
 }
 

@@ -63,14 +63,14 @@ pub(crate) fn lower_file_with_setup(
     (*il.evidence_mut()) = evidence;
     record_post_lower_bound_order_guard_evidence(&mut il, interner);
     record_post_lower_library_api_evidence(&mut il, interner);
-    drop_suppressed_units(&mut il, src);
+    record_suppressed_units(&mut il, src);
     Ok(il)
 }
 
-/// Inline suppression: drop any unit whose source carries a `nose-ignore` marker
-/// on its first line or the line just above it (in a comment, any language). Lets a
-/// maintainer mark a clone as intentionally-kept so it never shows up as a candidate.
-fn drop_suppressed_units(il: &mut Il, src: &[u8]) {
+/// Record any unit whose source carries a `nose-ignore` marker
+/// on its first line, previous line, or above an annotation block. The frontend
+/// facade applies the caller policy after language-specific lowering finishes.
+fn record_suppressed_units(il: &mut Il, src: &[u8]) {
     if il.units.is_empty() || !contains_marker(src) {
         return; // fast path: nothing to suppress
     }
@@ -79,7 +79,8 @@ fn drop_suppressed_units(il: &mut Il, src: &[u8]) {
         .iter()
         .map(|u| !unit_suppressed(src, il.node(u.root).span.start_byte as usize))
         .collect();
-    // Record suppressed units' byte spans so the contiguous channel excludes them too.
+    // Keep units until the source policy is applied; these spans also control
+    // the contiguous channel when the caller respects markers.
     let contents = il.edit();
     for (u, &kept) in contents.units.iter().zip(&keep) {
         if !kept {
@@ -87,8 +88,6 @@ fn drop_suppressed_units(il: &mut Il, src: &[u8]) {
             contents.suppressed.push((sp.start_byte, sp.end_byte));
         }
     }
-    let mut it = keep.iter();
-    contents.units.retain(|_| *it.next().unwrap());
 }
 
 const SUPPRESS_MARKER: &str = "nose-ignore";

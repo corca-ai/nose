@@ -6,6 +6,9 @@ pub(crate) fn words(args: &QueryArgs) -> Vec<String> {
     for path in &args.paths {
         words.extend(["--root".into(), path.to_string_lossy().into_owned()]);
     }
+    if args.include_inline_suppressed {
+        words.push("--include-inline-suppressed".into());
+    }
     for mode in &args.mode {
         let name = match mode {
             DetectionMode::Syntax => "syntax".into(),

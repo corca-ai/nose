@@ -31,6 +31,7 @@ pub(super) struct RawRegion {
 }
 
 pub(super) struct RawCorpus {
+    pub(super) inline_suppression: nose_frontend::InlineSuppression,
     pub(super) corpus: Corpus,
     pub(super) regions: Vec<RawRegionMetadata>,
     pub(super) discovery_digest: ContentDigest,
@@ -69,6 +70,7 @@ struct SourceResult {
 }
 
 struct SourceLoad<'a> {
+    policy: nose_frontend::InlineSuppression,
     index: usize,
     path: &'a str,
     lang: Lang,
@@ -133,6 +135,7 @@ pub(super) fn build_raw_corpus_cached(
     roots: &[&Path],
     exclude: &[String],
     run: &CacheRun,
+    policy: nose_frontend::InlineSuppression,
 ) -> RawCorpus {
     let paths = crate::timing::time_stage("cache_discover", || {
         nose_frontend::discover_source_inventory(roots, exclude)
@@ -149,6 +152,7 @@ pub(super) fn build_raw_corpus_cached(
             .enumerate()
             .map(|(index, (path, lang))| {
                 load_source(SourceLoad {
+                    policy,
                     index,
                     path,
                     lang: *lang,
@@ -219,6 +223,7 @@ pub(super) fn build_raw_corpus_cached(
         })
         .collect();
     RawCorpus {
+        inline_suppression: policy,
         corpus,
         regions,
         discovery_digest: discovery_digest(&source_files),
@@ -261,6 +266,7 @@ pub(super) fn global_line_statistics_digest(sources: &[CachedSourceFile]) -> Con
 pub(super) fn discover_source_files(
     roots: &[&Path],
     exclude: &[String],
+    policy: nose_frontend::InlineSuppression,
 ) -> Option<Vec<CachedSourceFile>> {
     let inventory = nose_frontend::discover_source_inventory(roots, exclude);
     if !inventory.errors.is_empty() {
@@ -272,7 +278,7 @@ pub(super) fn discover_source_files(
         .into_par_iter()
         .map(|(path, lang)| {
             let bytes = std::fs::read(&path).ok()?;
-            let digest = analysis_digest(&path, lang, &bytes);
+            let digest = analysis_digest(&path, lang, &bytes, policy);
             let skip_reason = nose_frontend::source_skip_reason(Path::new(&path), lang, &bytes)
                 .map(str::to_owned);
             let source_kind = SourceIdentityKind::ContentSha256;
@@ -329,12 +335,13 @@ fn load_source(request: SourceLoad<'_>) -> SourceResult {
 
     let source = std::mem::take(&mut snapshot.bytes);
     let lowered = if snapshot.skip_reason.is_none() {
-        match nose_frontend::try_lower_source_regions(
+        match nose_frontend::try_lower_source_regions_with_policy(
             FileId(request.index as u32),
             request.path,
             &source,
             request.lang,
             request.interner,
+            request.policy,
         ) {
             Ok(regions) => regions,
             Err(error) => {
@@ -353,7 +360,7 @@ fn load_source(request: SourceLoad<'_>) -> SourceResult {
 fn source_snapshot(request: &SourceLoad<'_>) -> Option<SourceSnapshot> {
     let bytes = std::fs::read(request.path).ok()?;
     Some(SourceSnapshot {
-        digest: analysis_digest(request.path, request.lang, &bytes),
+        digest: analysis_digest(request.path, request.lang, &bytes, request.policy),
         kind: SourceIdentityKind::ContentSha256,
         skip_reason: nose_frontend::source_skip_reason(
             Path::new(request.path),
@@ -367,18 +374,23 @@ fn source_snapshot(request: &SourceLoad<'_>) -> Option<SourceSnapshot> {
 
 /// Bind the exact working bytes and path-dependent frontend profile. Reading the
 /// working file also covers Git index flags, filters, and edits during discovery.
-pub(super) fn analysis_digest(path: &str, lang: Lang, bytes: &[u8]) -> ContentDigest {
+pub(super) fn analysis_digest(
+    path: &str,
+    lang: Lang,
+    bytes: &[u8],
+    policy: nose_frontend::InlineSuppression,
+) -> ContentDigest {
     let extension = Path::new(path)
         .extension()
         .and_then(|s| s.to_str())
         .unwrap_or("");
     ContentDigest::derive(
-        // Admission changed for raw ANSI bytes in Rust literals/comments. Old
-        // raw bundles and warm-unit snapshots may omit those unchanged files.
-        b"nose.source-analysis.v5",
+        // Bind admission policy before raw-IL reuse, including unchanged sources.
+        b"nose.source-analysis.v6",
         &[
             portable_il::source_digest(lang, bytes).as_bytes(),
             extension.as_bytes(),
+            policy.as_str().as_bytes(),
         ],
     )
 }

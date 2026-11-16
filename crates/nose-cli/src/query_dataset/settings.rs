@@ -7,6 +7,7 @@ use crate::{config, ignores};
 /// The query settings after layering: CLI flag wins, else config file, else built-in
 /// default.
 pub(crate) struct QuerySettings {
+    pub(crate) inline_suppression: nose_frontend::InlineSuppression,
     pub(crate) min_members: usize,
     pub(crate) min_value: f64,
     pub(crate) sort: SortKey,
@@ -87,6 +88,7 @@ pub(crate) fn resolve_query_settings(
     }
     Ok((
         QuerySettings {
+            inline_suppression: args.inline_suppression(),
             min_members,
             min_value,
             sort,

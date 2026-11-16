@@ -153,3 +153,10 @@ auditable.
 | Inline `// nose-ignore` | One source unit should never participate in detection. | Removes the unit before families are formed; no family metadata exists later. |
 | Structured ignore file | A reported family was accepted and intentionally kept. | Keeps rationale, owner, expiry, and machine-readable ignored-family output. |
 | Baseline | You are adopting nose on an existing codebase and want CI to flag only new or changed duplication. | Accepts the current state in bulk; use structured ignores for individual decisions that need explanation. |
+
+To inspect or capture duplication independently of source markers, pass
+`nose query <path> --include-inline-suppressed`. This includes marked units in
+both structural and contiguous detection, without rewriting source bytes.
+The flag composes with output formats, cache, watch, and `--save-analysis`.
+It does not bypass file discovery, excludes, size thresholds, structured ignores,
+or baselines. Capture continues to precede report suppressions. See the [saved analysis policy](region-identity.md#explore-changes-between-saved-analyses).

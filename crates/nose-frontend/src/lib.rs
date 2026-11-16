@@ -11,6 +11,7 @@ mod discover;
 mod embedded;
 mod go;
 mod html;
+mod inline_suppression;
 mod java;
 mod js_ts;
 mod lower;
@@ -30,16 +31,17 @@ mod corpus_tests;
 mod semantic_pack_evidence_tests;
 
 pub use corpus::{
-    lower_corpus, lower_corpus_filtered, lower_corpus_many, lower_corpus_raw_filtered,
-    lower_source_regions, prepare_corpus_resolution, resolve_corpus, resolve_corpus_affected,
-    resolve_corpus_prepared, source_is_analyzable, source_skip_reason, try_lower_source_regions,
-    PreparedCorpusResolution,
+    lower_corpus, lower_corpus_filtered, lower_corpus_filtered_with_policy, lower_corpus_many,
+    lower_corpus_raw_filtered, lower_source_regions, prepare_corpus_resolution, resolve_corpus,
+    resolve_corpus_affected, resolve_corpus_prepared, source_is_analyzable, source_skip_reason,
+    try_lower_source_regions, try_lower_source_regions_with_policy, PreparedCorpusResolution,
 };
 pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
 pub use discover::{
     discover_paths, discover_source_inventory, discover_unique_paths, SourceInventory,
 };
+pub use inline_suppression::InlineSuppression;
 pub use module_imports::{
     imported_immutable_snapshot_census, resolution_dependency_summary,
     FileResolutionDependencySummary, ImportSnapshotCensus, ResolutionDependency,
@@ -109,6 +111,18 @@ pub fn lower_source(
     lang: Lang,
     interner: &Interner,
 ) -> anyhow::Result<Il> {
+    lower_source_with_policy(file, path, src, lang, interner, InlineSuppression::Respect)
+}
+
+/// Lower source with an explicit inline suppression policy, without rewriting bytes.
+pub fn lower_source_with_policy(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    lang: Lang,
+    interner: &Interner,
+    policy: InlineSuppression,
+) -> anyhow::Result<Il> {
     let mut il = match lang {
         Lang::Python => python::lower(file, path, src, interner),
         Lang::JavaScript | Lang::TypeScript => js_ts::lower(file, path, src, lang, interner),
@@ -121,6 +135,10 @@ pub fn lower_source(
         Lang::Css => css::lower(file, path, src, interner),
         Lang::Vue | Lang::Svelte | Lang::Html => embedded::lower(file, path, src, lang, interner),
     }?;
+    policy.apply(&mut il);
+    if lang == Lang::Swift {
+        swift_cross_file_shadows::close_local_dictionary_default_subscript(&mut il, interner);
+    }
     il.source = Some(std::sync::Arc::new(nose_il::SourceDocument::new(
         src.to_vec(),
     )));

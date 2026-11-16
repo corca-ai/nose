@@ -8,16 +8,18 @@ pub(crate) fn open_session(
     packs: &nose_semantics::SemanticPackSet,
     max_bytes: u64,
     opts: &DetectOptions,
+    policy: nose_frontend::InlineSuppression,
 ) -> anyhow::Result<Option<FastUnitSession>> {
     if !super::super::semantic_packs_allow_fast_units(packs) {
         return Ok(None);
     }
-    let fast = match super::super::try_build_units_fast(roots, exclude, dir, packs, max_bytes, opts)
-    {
+    let fast = match super::super::try_build_units_fast(
+        roots, exclude, dir, packs, max_bytes, opts, policy,
+    ) {
         Some(fast) => fast,
         None => {
             let mut cached =
-                super::super::build_corpus_cached(roots, exclude, dir, packs, max_bytes);
+                super::super::build_corpus_cached(roots, exclude, dir, packs, max_bytes, policy);
             cached.corpus.ensure_complete()?;
             let mut snapshot = cached.unit_snapshot;
             let langs = snapshot

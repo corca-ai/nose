@@ -143,6 +143,7 @@ pub(super) fn build_resolved_corpus_cached(
     }
     CachedCorpus {
         unit_snapshot: CachedUnitSnapshot {
+            inline_suppression: raw.inline_suppression,
             contexts: unit_contexts,
             source_files: source_files.clone(),
             semantic_pack_digest: *semantic_pack_digest.as_bytes(),

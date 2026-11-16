@@ -410,7 +410,11 @@ fn prepare_query_corpus(request: &QueryDetectRequest<'_>) -> PreparedCorpus {
     let Some(dir) = &request.args.cache_dir else {
         return PreparedCorpus {
             corpus: time_lower(|| {
-                nose_frontend::lower_corpus_filtered(request.refs, request.exclude)
+                nose_frontend::lower_corpus_filtered_with_policy(
+                    request.refs,
+                    request.exclude,
+                    request.args.inline_suppression(),
+                )
             }),
             invalidation_report: None,
             unit_snapshot: None,
@@ -425,6 +429,7 @@ fn prepare_query_corpus(request: &QueryDetectRequest<'_>) -> PreparedCorpus {
             dir,
             request.semantic_packs,
             request.cache_max_bytes,
+            request.args.inline_suppression(),
         )
     });
     let line_context = cache::CachedLineContext {

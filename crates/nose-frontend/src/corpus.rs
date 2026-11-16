@@ -4,7 +4,10 @@
 //! the file-system and parallel-orchestration boundary that turns those lowered
 //! buffers into a resolved corpus.
 
-use crate::{embedded, lower_source, module_imports, source_artifacts, swift_cross_file_shadows};
+use crate::{
+    embedded, lower_source_with_policy, module_imports, source_artifacts, swift_cross_file_shadows,
+    InlineSuppression,
+};
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use std::path::Path;
@@ -22,7 +25,7 @@ pub fn source_skip_reason(path: &Path, lang: Lang, source: &[u8]) -> Option<&'st
 }
 
 /// Lower every analyzable region of a file into separate [`Il`]s. For most languages
-/// this is one `Il` (delegating to [`lower_source`]); for `<script>`/`<style>`-bearing
+/// this is one `Il` (delegating to [`crate::lower_source`]); for `<script>`/`<style>`-bearing
 /// containers (Vue/Svelte/HTML) it is one per embedded region (JS/TS for `<script>`, CSS
 /// for `<style>`), all sharing the container's [`FileId`] and path.
 pub fn lower_source_regions(
@@ -43,11 +46,33 @@ pub fn try_lower_source_regions(
     lang: Lang,
     interner: &Interner,
 ) -> anyhow::Result<Vec<Il>> {
+    try_lower_source_regions_with_policy(
+        file,
+        path,
+        src,
+        lang,
+        interner,
+        InlineSuppression::Respect,
+    )
+}
+
+/// Fallible region lowering with an explicit source-unit admission policy.
+pub fn try_lower_source_regions_with_policy(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    lang: Lang,
+    interner: &Interner,
+    policy: InlineSuppression,
+) -> anyhow::Result<Vec<Il>> {
     let mut regions = match lang {
         Lang::Vue | Lang::Svelte | Lang::Html => {
-            embedded::lower_regions(file, path, src, lang, interner)
+            embedded::lower_regions(file, path, src, lang, interner, policy)
         }
-        _ => return lower_source(file, path, src, lang, interner).map(|il| vec![il]),
+        _ => {
+            return lower_source_with_policy(file, path, src, lang, interner, policy)
+                .map(|il| vec![il])
+        }
     }?;
     let source = std::sync::Arc::new(nose_il::SourceDocument::new(src.to_vec()));
     for il in &mut regions {
@@ -72,7 +97,16 @@ pub fn lower_corpus_many(roots: &[&Path]) -> Corpus {
 
 /// Like [`lower_corpus_many`] but applies gitignore-syntax `exclude` globs.
 pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
-    let mut corpus = lower_corpus_raw_filtered(roots, exclude);
+    lower_corpus_filtered_with_policy(roots, exclude, InlineSuppression::Respect)
+}
+
+/// Lower an admitted corpus with the same policy for every source region.
+pub fn lower_corpus_filtered_with_policy(
+    roots: &[&Path],
+    exclude: &[String],
+    policy: InlineSuppression,
+) -> Corpus {
+    let mut corpus = lower_corpus_raw_with_policy(roots, exclude, policy);
     resolve_corpus(&mut corpus);
     corpus
 }
@@ -81,6 +115,14 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
 /// resolution. This is the portable raw-IL stage boundary used by the layered
 /// cache; ordinary callers should prefer [`lower_corpus_filtered`].
 pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
+    lower_corpus_raw_with_policy(roots, exclude, InlineSuppression::Respect)
+}
+
+fn lower_corpus_raw_with_policy(
+    roots: &[&Path],
+    exclude: &[String],
+    policy: InlineSuppression,
+) -> Corpus {
     let timing = std::env::var_os("NOSE_TIME").is_some();
     let started = std::time::Instant::now();
 
@@ -112,11 +154,16 @@ pub fn lower_corpus_raw_filtered(roots: &[&Path], exclude: &[String]) -> Corpus 
                         reason: reason.into(),
                     }),
                 )),
-                None => {
-                    try_lower_source_regions(FileId(index as u32), path, &source, *lang, &interner)
-                        .map(|regions| (regions, None))
-                        .map_err(|error| format!("lowering source {path}: {error}"))
-                }
+                None => try_lower_source_regions_with_policy(
+                    FileId(index as u32),
+                    path,
+                    &source,
+                    *lang,
+                    &interner,
+                    policy,
+                )
+                .map(|regions| (regions, None))
+                .map_err(|error| format!("lowering source {path}: {error}")),
             },
             Err(error) => Err(format!("reading source {path}: {error}")),
         })

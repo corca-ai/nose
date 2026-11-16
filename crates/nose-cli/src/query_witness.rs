@@ -9,6 +9,7 @@ type DagByRepSpan = HashMap<RepSpan, (nose_normalize::ValueDag, bool)>;
 pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
     opts: &nose_detect::DetectOptions,
+    policy: nose_frontend::InlineSuppression,
 ) {
     let is_enrichable = |f: &nose_detect::RefactorFamily| {
         f.locations.len() >= 2
@@ -40,7 +41,9 @@ pub(crate) fn enrich_graded_witnesses(
             continue;
         };
         let interner = Interner::new();
-        let Ok(il) = nose_frontend::lower_source(FileId(0), file, &src, lang, &interner) else {
+        let Ok(il) =
+            nose_frontend::lower_source_with_policy(FileId(0), file, &src, lang, &interner, policy)
+        else {
             continue;
         };
         let mut uniq = spans.clone();

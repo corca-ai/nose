@@ -67,6 +67,7 @@ pub(crate) fn detect_divergences(
                     &root,
                     &current_changed,
                     &current_projection_opts,
+                    args.inline_suppression(),
                 )
             })
         });
@@ -89,6 +90,7 @@ pub(crate) fn detect_divergences(
             &changed,
             &base_tree.path,
             &enrich_opts,
+            args.inline_suppression(),
         )
     });
     time_stage("base_witness", || {
@@ -101,6 +103,7 @@ pub(crate) fn detect_divergences(
                 current_changed: &current_changed,
                 diff_entries: &diff_entries,
                 opts: &enrich_opts,
+                inline_suppression: args.inline_suppression(),
                 retained_base,
                 preprojected_current,
             },
@@ -151,6 +154,7 @@ fn flag_divergences(
     changed: &HashMap<String, Vec<(u32, u32)>>,
     base_root: &Path,
     enrich_opts: &nose_detect::DetectOptions,
+    policy: nose_frontend::InlineSuppression,
 ) -> Vec<Divergence> {
     let prefix = canonical(base_root);
     let mut lines = FileLineCache::default();
@@ -238,7 +242,7 @@ fn flag_divergences(
         });
     }
     let graded_started = Instant::now();
-    enrich_graded_witnesses(&mut graded_inputs, enrich_opts);
+    enrich_graded_witnesses(&mut graded_inputs, enrich_opts, policy);
     let graded_elapsed = graded_started.elapsed();
     for (divergence, family) in flagged.iter_mut().zip(graded_inputs) {
         divergence.graded = family.witness.and_then(|witness| witness.graded);

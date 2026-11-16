@@ -340,6 +340,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 | `--min-size N` | ignore units or syntax copy-paste runs smaller than this size, in IL tokens (default 24) |
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default. Experimental `abstraction[:T]` is accepted but not a stable capabilities mode. |
 | `--root <path>` / `-r <path>` | analyze another root; repeat for multi-root query runs. With `--root`, bare positional arguments are query terms. |
+| `--include-inline-suppressed` | include units marked with `nose-ignore` in every detection channel; composes with reports, JSON, watch and saved analysis; default is to respect markers |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--generated-path <glob>` | assert that files matching this root-anchored glob are generated; repeatable and recoverable with `all top=0` |
 | `--cache-dir <dir>` | reuse portable, checksummed analysis artifacts and transactional incremental state; exact no-op and independently provable one-leaf updates avoid restoring the whole IL corpus |

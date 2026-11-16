@@ -140,6 +140,10 @@ fn profile(dataset: &crate::query_dataset::QueryDataset) -> Result<BTreeMap<Stri
     exclude.dedup();
     Ok(BTreeMap::from([
         (
+            "inline-suppression".into(),
+            s.inline_suppression.as_str().into(),
+        ),
+        (
             "engine".into(),
             format!("nose/{}/analysis-v1", env!("CARGO_PKG_VERSION")),
         ),

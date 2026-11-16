@@ -148,6 +148,9 @@ pub(crate) enum Cmd {
         /// Keep the query alive and emit an initial snapshot plus revisioned JSONL updates.
         #[arg(long)]
         watch: bool,
+        /// Include units marked with inline nose-ignore in detection; other exclusions still apply.
+        #[arg(long)]
+        include_inline_suppressed: bool,
         /// Detection channels to run; omit for `syntax,semantic,near`. Pass a comma-list
         /// or repeat the flag; fuzzy channels take an inline threshold (`near:0.8`).
         #[arg(long, value_delimiter = ',')]
@@ -517,6 +520,7 @@ pub(crate) enum StatsFormat {
 
 #[derive(Clone)]
 pub(crate) struct QueryArgs {
+    pub(crate) include_inline_suppressed: bool,
     pub(crate) max_candidate_pairs: Option<usize>,
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) min_members: Option<usize>,
@@ -538,6 +542,16 @@ pub(crate) struct QueryArgs {
     pub(crate) min_size: Option<usize>,
     pub(crate) min_lines: Option<u32>,
     pub(crate) scope: ScopeFilter,
+}
+
+impl QueryArgs {
+    pub(crate) fn inline_suppression(&self) -> nose_frontend::InlineSuppression {
+        if self.include_inline_suppressed {
+            nose_frontend::InlineSuppression::Include
+        } else {
+            nose_frontend::InlineSuppression::Respect
+        }
+    }
 }
 
 /// `--scope`: which test-boundary side of the report to keep. An explicit

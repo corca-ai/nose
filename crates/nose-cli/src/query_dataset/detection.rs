@@ -13,6 +13,7 @@ pub(super) fn try_query_detect_report_fast(
             request.semantic_packs,
             request.cache_max_bytes,
             request.opts,
+            request.args.inline_suppression(),
         )
     })?;
     Some(query_detect_report_fast(

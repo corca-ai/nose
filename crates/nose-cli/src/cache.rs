@@ -82,6 +82,7 @@ pub(crate) struct CachedUnitContext {
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub(crate) struct CachedUnitSnapshot {
+    pub(crate) inline_suppression: nose_frontend::InlineSuppression,
     pub(crate) contexts: Vec<CachedUnitContext>,
     pub(crate) source_files: Vec<CachedSourceFile>,
     pub(crate) semantic_pack_digest: [u8; 32],
@@ -120,12 +121,13 @@ pub(crate) fn build_corpus_cached(
     dir: &Path,
     semantic_packs: &nose_semantics::SemanticPackSet,
     max_bytes: u64,
+    policy: nose_frontend::InlineSuppression,
 ) -> CachedCorpus {
     // Raw/resolved artifacts and the dependency snapshot are part of the
     // incremental-cache contract: provider changes, path additions, and watch
     // restarts all depend on that history to make precise invalidation choices.
     let run = CacheRun::with_limit(dir, max_bytes);
-    let raw = source::build_raw_corpus_cached(roots, exclude, &run);
+    let raw = source::build_raw_corpus_cached(roots, exclude, &run, policy);
     let mut cached =
         resolved::build_resolved_corpus_cached(raw, &run, semantic_pack_digest(semantic_packs));
     cached.unit_snapshot.fast_safe = semantic_packs_allow_fast_units(semantic_packs);
@@ -139,15 +141,16 @@ pub(crate) fn try_build_units_fast(
     semantic_packs: &nose_semantics::SemanticPackSet,
     max_bytes: u64,
     opts: &DetectOptions,
+    policy: nose_frontend::InlineSuppression,
 ) -> Option<FastCachedUnits> {
     semantic_packs_allow_fast_units(semantic_packs).then_some(())?;
     fast_units::try_build(
         roots,
         exclude,
-        dir,
-        max_bytes,
+        CacheRun::with_limit(dir, max_bytes),
         opts,
         *semantic_pack_digest(semantic_packs).as_bytes(),
+        policy,
     )
 }
 

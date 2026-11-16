@@ -6,6 +6,15 @@ break.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-16
+
+- Add `nose query --include-inline-suppressed` to analyze units marked with
+  `nose-ignore`, including live reports, JSON, watch, and saved comparisons (#1014).
+  Default queries still respect inline markers; other admission and reporting
+  filters remain unchanged. Cache identities bind the policy, and saved analysis
+  profiles record `inline-suppression=respect|include`. Recapture both sides with
+  `include` when enforcing duplicate growth regardless of source markers.
+
 ## [0.21.1] - 2026-11-13
 
 - Build Apple Silicon release archives on the supported macOS 15 runner.

@@ -1,5 +1,7 @@
 #[path = "analysis_changes/handles.rs"]
 mod handles;
+#[path = "analysis_changes/inline_suppression.rs"]
+mod inline_suppression;
 #[path = "analysis_changes/reviews.rs"]
 mod reviews;
 #[path = "analysis_changes/ut_continuation.rs"]

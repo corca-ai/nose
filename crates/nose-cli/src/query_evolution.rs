@@ -77,6 +77,7 @@ pub(crate) fn try_compare(cmd: &Cmd) -> Result<bool> {
         format,
         roots,
         watch,
+        include_inline_suppressed,
         mode,
         limits,
         exclude,
@@ -106,7 +107,7 @@ pub(crate) fn try_compare(cmd: &Cmd) -> Result<bool> {
     let Some(before) = &analysis.before else {
         return Ok(false);
     };
-    ensure!(roots.is_empty() && !watch && mode.is_empty() && min_size.is_none()
+    ensure!(roots.is_empty() && !watch && !include_inline_suppressed && mode.is_empty() && min_size.is_none()
         && min_lines.is_none() && min_value.is_none() && min_members.is_none() && exclude.is_empty()
         && max_candidate_pairs.is_none() && generated_path.is_empty() && cache_dir.is_none() && cache_max_bytes.is_none()
         && ignore_file.is_none() && semantic_pack.is_empty() && semantic_pack_lock.is_none()
@@ -127,6 +128,7 @@ pub(crate) fn capabilities() -> serde_json::Value {
     serde_json::json!({
         "capture": "nose query <path> --save-analysis FILE",
         "compare": "nose query --before FILE --after FILE [terms...]",
+        "inline_suppression": {"flag":"--include-inline-suppressed", "profile_key":"inline-suppression", "default":"respect", "values":["respect", "include"], "legacy":"not-recorded; recapture for include"},
         "views": ["dashboard", "list", "group", "change"],
         "fields": selection::FIELDS, "reason_values": selection::REASONS,
         "correspondence_values": selection::KINDS, "evidence_values": ["retained", "recheck"],

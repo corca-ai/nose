@@ -28,6 +28,7 @@ impl QueryAnalysisSession {
             &semantic_packs,
             settings.cache_max_bytes,
             &opts,
+            args.inline_suppression(),
         )?
         else {
             return Ok(None);

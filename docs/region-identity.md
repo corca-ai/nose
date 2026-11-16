@@ -140,6 +140,22 @@ singletons outside detected families, and source bodies are not included. The
 population is explicitly `admitted-query-families`, not a census of all source.
 Use `regions snapshot` for the separate singleton-aware unit census.
 
+By default, inline `nose-ignore` markers remove units before detection and thus
+before capture. Use `--include-inline-suppressed` on **both** capture commands to
+compare duplicate growth independently of those markers, including unchanged
+marked base units. This is the same analysis policy available to live query and
+watch; it does not expand file admission or turn the capture into a source census.
+
+New artifacts record `profile["inline-suppression"]` as `respect` or `include`.
+Comparison keeps the existing `nose.analysis/v1` and `nose.analysis-changes/v1`
+formats: differing profiles set `profile_matches=false` and prevent evidence
+retention, rather than failing to read the files. Older artifacts without the key
+remain readable but do not establish `include`; recapture both sides for that
+contract. A consumer enforcing this policy must require `include` on both sides,
+as well as compatible profiles and complete inputs/comparison. The comparison
+command rejects `--include-inline-suppressed`: it uses the saved policies and
+cannot recover code omitted during capture.
+
 The artifact records resolved thresholds/channels, engine profile, exclude rules,
 pack influence and lock decision, roots and the working-directory base for member
 paths, scanned/skipped counts, skipped-source paths and diagnostic reasons, every family's

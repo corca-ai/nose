@@ -42,7 +42,7 @@ pub(crate) fn lower(
     src: &[u8],
     interner: &Interner,
 ) -> anyhow::Result<Il> {
-    let mut il = crate::lower::lower_file(
+    crate::lower::lower_file(
         file,
         path,
         src,
@@ -51,9 +51,7 @@ pub(crate) fn lower(
         || tree_sitter_swift::LANGUAGE.into(),
         Lang::Swift,
         lower_items,
-    )?;
-    crate::swift_cross_file_shadows::close_local_dictionary_default_subscript(&mut il, interner);
-    Ok(il)
+    )
 }
 
 #[cfg(test)]

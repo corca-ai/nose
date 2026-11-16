@@ -43,7 +43,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    otherwise erase exact source, domain, import, symbol, type, guard, place/effect,
    library API, or sequence-surface distinctions needed by semantic contracts,
    then tag syntactic unit boundaries (function/method/class/block), which gives
-   detection accurate boundaries for free.
+   detection accurate boundaries for free. Lowering records inline suppression
+   spans in each region's language buffer; the frontend applies the explicit
+   `respect` (default) or `include` policy before corpus resolution and detection.
+   Cached source identities and warm snapshots bind that same policy.
    Rust runtime-type lookup first checks for a matching asserted import before
    traversing enclosing scopes. This negative prescreen grants no type evidence;
    candidates still require the existing visibility, shadowing and dependency checks.

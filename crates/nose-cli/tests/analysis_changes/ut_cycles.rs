@@ -303,6 +303,7 @@ fn live_family_offers_bounded_surrounding_code_without_manual_member_selection()
 #[test]
 fn first_review_capture_replays_detection_without_reporting_suppressions() {
     let p = Project::new();
+    p.write("a.py", &format!("# nose-ignore\n{}", super::SOURCE));
     p.write("accepted.json", r#"{"schema_version":2,"tool":"nose","baseline_kind":"accepted-duplication","families":[]}"#);
     p.write("ignored.json", r#"{"ignores":[]}"#);
     let options = [
@@ -314,6 +315,7 @@ fn first_review_capture_replays_detection_without_reporting_suppressions() {
         "1",
         "--min-lines",
         "1",
+        "--include-inline-suppressed",
         "--baseline",
         "accepted.json",
         "--ignore-file",
