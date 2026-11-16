@@ -1481,6 +1481,118 @@
       "issue": "https://github.com/corca-ai/nose/issues/1003",
       "reason": "Release 0.21.1 updates compiled semantic-pack version metadata; all six families and every other field are unchanged.",
       "repo": "sidekiq"
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "fastlane",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "e73e7dcef89ed27c1088ae5868f0e9ef55eb453f0302c1240c8c15b24769f855"
+          ],
+          "current": [
+            "d6583f619ba17b1fa1a231838bd91d58d29516d22201a5816fb382d5fdfc30d5"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "asciidoctor",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "153ff06ca9590afac2f3ef7c56d3150f57083b0dbe6f501c977a26290d653b99"
+          ],
+          "current": [
+            "27a6b4b540012419a067dae25140b529cc77b100c09c3c79e413906e0584c5be"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "sidekiq",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "348e5dc8c7e5e3f00fbda3eb2a05232b25f16b78a65d30a8a10858b8203048ac"
+          ],
+          "current": [
+            "5afe0aad2a6dbeddb133541e6465d14fb463f2a1a95f91b2804ca7347c9d2ca6"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "alacritty",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "f9f38803f4db83f77c5f06da645fd0199fc30f9ece783dbffec2e76be9fd1ee5"
+          ],
+          "current": [
+            "6edb7013927a2a442fdcce548f043a19f8600548a1f1f2b127e684bb42cb13fe"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "requests",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "692a13ded40eb0de2f14ed1a87fe3a03965f2c9bef0da9aa238d0415842ef380"
+          ],
+          "current": [
+            "2c4152a4dcc0407954f04323ff6f496042d18a29bb9093adac3f9e2e3a68f569"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "junit5",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "1c4f48ee63344e548fe20937774df571a8e6c1541fafbbd96c5d1a8f59ff7ad1"
+          ],
+          "current": [
+            "782cd99c01c7a172fa790696f2000aebd8f57337c4687128b8fab5e67daf519d"
+          ]
+        }
+      }
+    },
+    {
+      "baseline_source_sha": "e63e6203049f2948631a8e29f75401861ed0fd07",
+      "repo": "prettier",
+      "issue": "https://github.com/corca-ai/nose/issues/1014",
+      "reason": "The 0.22.0 release changes only serialized version metadata. Recursive comparison confirms all other fields, families, source identities, ordering, and product surfaces are identical.",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "7bf0f6d1ba58d1bbc2a6eaa178174995a205a0e6c26057493603b28cbb00cc29"
+          ],
+          "current": [
+            "9852001343ed3063260e208a4b4bb12b7f73940c6c950999139757aa8e33f41b"
+          ]
+        }
+      }
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"
