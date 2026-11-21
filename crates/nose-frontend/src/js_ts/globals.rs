@@ -20,7 +20,7 @@ pub(super) fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> 
     }
     if contract.requires_unshadowed_root
         && (file_prefix_has_binding_ident(lo, node, contract.root)
-            || enclosing_function_prefix_has_binding_ident(lo, node, contract.root))
+            || enclosing_function_header_binds_ident(lo, node, contract.root))
     {
         return None;
     }
@@ -78,7 +78,16 @@ pub(super) fn file_prefix_has_binding_ident(lo: &Lowering, node: TsNode, ident: 
     contains_js_binding_ident(prefix, ident)
 }
 
-pub(super) fn enclosing_function_prefix_has_binding_ident(
+/// Whether an enclosing function's header (its name and parameter list, up to
+/// the body's first `{`) names `ident`.
+///
+/// Callers evaluate this only after [`file_prefix_has_binding_ident`] reported
+/// no binding before the node, and every enclosing-function prefix is a subset
+/// of that file prefix. A binding in the body therefore cannot be why the name
+/// is shadowed here; only a parameter or the function's own name can be, and
+/// both live in the header. The previous per-occurrence body-prefix scan was
+/// redundant work over text the file-level check had already rejected.
+pub(super) fn enclosing_function_header_binds_ident(
     lo: &Lowering,
     node: TsNode,
     ident: &str,
@@ -94,8 +103,7 @@ pub(super) fn enclosing_function_prefix_has_binding_ident(
             if end <= lo.src.len() && start <= end {
                 let prefix = std::str::from_utf8(&lo.src[start..end]).unwrap_or("");
                 let header = prefix.find('{').map(|idx| &prefix[..idx]).unwrap_or(prefix);
-                if contains_js_identifier(header, ident) || contains_js_binding_ident(prefix, ident)
-                {
+                if contains_js_identifier(header, ident) {
                     return true;
                 }
             }
@@ -205,7 +213,7 @@ pub(super) fn lower_member_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(contract) = qualified_global_symbol_contract(lo.lang, &path) {
         let root_unshadowed = !contract.requires_unshadowed_root
             || (!file_prefix_has_binding_ident(lo, node, contract.root)
-                && !enclosing_function_prefix_has_binding_ident(lo, node, contract.root));
+                && !enclosing_function_header_binds_ident(lo, node, contract.root));
         if root_unshadowed {
             lo.record_qualified_global_symbol(span, NodeKind::Field, contract.path);
         }
@@ -238,7 +246,7 @@ fn js_static_global_unshadowed_at(lo: &Lowering, node: TsNode, name: &str) -> bo
         return true;
     }
     !file_prefix_has_binding_ident(lo, node, contract.name)
-        && !enclosing_function_prefix_has_binding_ident(lo, node, contract.name)
+        && !enclosing_function_header_binds_ident(lo, node, contract.name)
 }
 
 #[cfg(test)]

@@ -6,6 +6,11 @@ break.
 
 ## [Unreleased]
 
+- Stop rescanning enclosing function bodies for JS/TS shadowing after the
+  file-prefix check has already proved no binding precedes the use; only the
+  enclosing header can still shadow it. Output is unchanged and the cold
+  frontend capture spends about 6% less CPU on the ceal tree.
+
 ## [0.22.0] - 2026-11-16
 
 - Add `nose query --include-inline-suppressed` to analyze units marked with

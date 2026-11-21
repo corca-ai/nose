@@ -112,6 +112,48 @@ fn js_static_global_evidence_respects_local_and_destructured_shadows() {
 }
 
 #[test]
+fn js_static_global_shadowing_stays_positional_and_function_local() {
+    let il = lower_js(
+        "function beforeBinding(value) { return Math.abs(value); }
+         const Math = { abs: (value) => value };",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        1,
+        "a use before the file's later binding keeps the global's semantics"
+    );
+
+    let il = lower_js(
+        "function readsGlobal(value) { return Math.abs(value); }
+         function bindsElsewhere() { const Math = { abs: (value) => value }; return Math.abs(1); }",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        1,
+        "a binding inside another function does not shadow this use"
+    );
+
+    let il = lower_js(
+        "function bindsBefore(value) {
+             const Math = { abs: (value) => value };
+             return Math.abs(value);
+         }",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        0,
+        "a binding earlier in the enclosing function still shadows the use"
+    );
+
+    let il = lower_js("function headerBinds(Math, value) { return Math.abs(value); }");
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        0,
+        "a parameter in the enclosing function's header still shadows the use"
+    );
+}
+
+#[test]
 fn js_typeof_unary_emits_source_operator_evidence() {
     let il = lower_js("function real(value) { return typeof value === \"string\"; }");
     assert_eq!(
