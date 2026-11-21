@@ -1,5 +1,5 @@
 use super::expressions::lower_expr;
-use super::globals::{enclosing_function_prefix_has_binding_ident, file_prefix_has_binding_ident};
+use super::globals::{enclosing_function_header_binds_ident, file_prefix_has_binding_ident};
 use super::syntax::static_string_key;
 use super::{lower_block, lower_stmt};
 use crate::lower::Lowering;
@@ -481,7 +481,7 @@ fn static_require_module<'a>(lo: &Lowering<'a>, value: TsNode<'a>) -> Option<(St
 
 fn js_require_shadowed_at(lo: &Lowering, require_callee: TsNode) -> bool {
     file_prefix_has_binding_ident(lo, require_callee, "require")
-        || enclosing_function_prefix_has_binding_ident(lo, require_callee, "require")
+        || enclosing_function_header_binds_ident(lo, require_callee, "require")
 }
 
 fn is_node_timers_promise_module(module: &str) -> bool {

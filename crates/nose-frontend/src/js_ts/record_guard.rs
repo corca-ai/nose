@@ -1,4 +1,4 @@
-use super::globals::{enclosing_function_prefix_has_binding_ident, file_prefix_has_binding_ident};
+use super::globals::{enclosing_function_header_binds_ident, file_prefix_has_binding_ident};
 use super::syntax::{compact_js_expr, simple_js_ident, strip_outer_parens_owned};
 use crate::lower::Lowering;
 use nose_il::{
@@ -49,7 +49,7 @@ pub(super) fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Optio
     let array_contract = js_array_is_array_contract(lo.lang, "Array", "isArray", 1)?;
     if array_contract.requires_unshadowed_receiver
         && (file_prefix_has_binding_ident(lo, node, array_contract.receiver)
-            || enclosing_function_prefix_has_binding_ident(lo, node, array_contract.receiver))
+            || enclosing_function_header_binds_ident(lo, node, array_contract.receiver))
     {
         return None;
     }
@@ -64,7 +64,7 @@ pub(super) fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Optio
     if boolean_contract.is_some_and(|contract| {
         contract.requires_unshadowed_function
             && (file_prefix_has_binding_ident(lo, node, contract.function)
-                || enclosing_function_prefix_has_binding_ident(lo, node, contract.function))
+                || enclosing_function_header_binds_ident(lo, node, contract.function))
     }) {
         return None;
     }
