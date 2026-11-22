@@ -6,9 +6,11 @@ break.
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-11-22
+
 - Skip repeated JS/TS function-body shadowing scans when the file prefix is
   valid UTF-8 and contains no binding. Preserve function-local shadowing when
-  earlier bytes cannot be decoded.
+  earlier bytes cannot be decoded. (#1016)
 
 ## [0.22.0] - 2026-11-16
 

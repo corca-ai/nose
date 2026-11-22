@@ -1593,6 +1593,118 @@
           ]
         }
       }
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "6edb7013927a2a442fdcce548f043a19f8600548a1f1f2b127e684bb42cb13fe"
+          ],
+          "current": [
+            "fdb5bdf337f24ca98d6db8e3fa5b97e497884fa2bb755a42e46b5bc07a44fcd7"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "alacritty"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "27a6b4b540012419a067dae25140b529cc77b100c09c3c79e413906e0584c5be"
+          ],
+          "current": [
+            "7eff82662d016071a6a489274e87899d0e1d9352af70e4091f7050033be0b4d8"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "asciidoctor"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "d6583f619ba17b1fa1a231838bd91d58d29516d22201a5816fb382d5fdfc30d5"
+          ],
+          "current": [
+            "bb615e8bec8ee8d6ca6010f1dec870505474954e3802415d98511353b0644cc1"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "782cd99c01c7a172fa790696f2000aebd8f57337c4687128b8fab5e67daf519d"
+          ],
+          "current": [
+            "ca1c7ee2358baa71244a44e2db5a62655d2eec2f313627fa7c5c70653475362d"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "junit5"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "9852001343ed3063260e208a4b4bb12b7f73940c6c950999139757aa8e33f41b"
+          ],
+          "current": [
+            "5b9b37fe3a87e74549f9428e30613f295feaa74809ceb771e0f3605bbb9f9592"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "prettier"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "2c4152a4dcc0407954f04323ff6f496042d18a29bb9093adac3f9e2e3a68f569"
+          ],
+          "current": [
+            "e39f3554f881622098884e8f238ed97683333999c948559b446eeafbd3032913"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "requests"
+    },
+    {
+      "baseline_source_sha": "77fd3f2ec377ae28d3bf94ae744de9ed0d1a18db",
+      "changed": {
+        "hashes": {
+          "baseline": [
+            "5afe0aad2a6dbeddb133541e6465d14fb463f2a1a95f91b2804ca7347c9d2ca6"
+          ],
+          "current": [
+            "0f05aaec4e180994865cbd75ccd39e1614548b3f1502132371b5c70ee0c1f7b9"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/pull/1016",
+      "reason": "A byte-for-byte comparison of both release builds confirms that v0.22.1 changes only serialized version metadata.",
+      "repo": "sidekiq"
     }
   ],
   "schema": "nose.semantic_regression_expected_drift.v1"

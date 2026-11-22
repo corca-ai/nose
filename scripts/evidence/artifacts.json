@@ -45,7 +45,7 @@
       "consumers": ["local and hosted quality-gate orchestration"],
       "retention_policy": "Keep current policy plus any receipt required to interpret a checked release or gate result.",
       "artifact_count": 7,
-      "inventory_sha256": "4674478a40dacdfe97c2421f403108d014e2057b276ae5415c573c8760efb82b"
+      "inventory_sha256": "17898ce94e1236da489c34e6eb98d3434af45e2e51ece3a08e2d974c5d9a06e0"
     },
     {
       "id": "benchmark-root",
@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "a5266b40876548f427e67c95ad19730232d221c8c881607990e09e85766f71c0"
+      "inventory_sha256": "6023afd26da6bf67c22e88960a2f0c6027cc2646b62ffa33a812e4971b718b78"
     },
     {
       "id": "documentation-policy",
@@ -210,7 +210,7 @@
       "consumers": ["documentation tests and semantic-pack examples"],
       "retention_policy": "Keep examples synchronized with supported schemas; keep receipts with the examples they bind.",
       "artifact_count": 10,
-      "inventory_sha256": "5b0a0bbbe728f2323c2d2a93fc29ff788fbd5ed866546292757d5ad9c38f76d4"
+      "inventory_sha256": "2096fd9326d8627d626fc7e4df6e285eb60b218a05d137ad793800f899ea2ba2"
     },
     {
       "id": "documentation-schemas",

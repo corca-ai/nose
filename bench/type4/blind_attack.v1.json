@@ -19,8 +19,8 @@
   },
   "product_crates_tree": "821bcae3c8b8500a8653d349b6d5d6842fabac92",
   "product_dependencies": {
-    "Cargo.lock": "7393d8a8cf4553694cb49823bb0ca131c05e86d2",
-    "Cargo.toml": "43699f79e66de220ea698ec94acf0e87ba8f94e2",
+    "Cargo.lock": "2ba753c4298512785977588a9dac5001fdc00da7",
+    "Cargo.toml": "e149dfd1d2a97f6c1a23f9db707d816eedd75c32",
     "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
   },
   "schema_version": 1,
