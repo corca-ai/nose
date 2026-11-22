@@ -160,7 +160,8 @@ fn js_local_global_shadowing_survives_an_unreadable_file_prefix() {
         "example.js",
         b"// caf\xe9\nfunction f(value) {
             const Math = { abs: (value) => value };
-            return Math.abs(value);
+            const Promise = { resolve: (value) => value };
+            return Promise.resolve(Math.abs(value));
         }",
         Lang::JavaScript,
         &Interner::new(),
@@ -169,7 +170,7 @@ fn js_local_global_shadowing_survives_an_unreadable_file_prefix() {
 
     assert_eq!(unshadowed_global_evidence_count(&il, "Math"), 0);
     assert_eq!(
-        qualified_global_evidence_count(&il, "Math.abs", NodeKind::Field),
+        qualified_global_evidence_count(&il, "Promise.resolve", NodeKind::Field),
         0,
     );
 }
