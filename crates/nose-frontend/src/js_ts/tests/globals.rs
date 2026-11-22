@@ -4,7 +4,7 @@ use super::support::{
     record_has_source_unshadowed_dependency, source_operator_evidence_count,
     unshadowed_global_evidence_count,
 };
-use nose_il::{Builtin, Lang, NodeKind, Payload, SourceOperatorKind};
+use nose_il::{Builtin, FileId, Interner, Lang, NodeKind, Payload, SourceOperatorKind};
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
     library_js_array_is_array_contract, library_js_like_map_constructor_contract,
@@ -108,6 +108,70 @@ fn js_static_global_evidence_respects_local_and_destructured_shadows() {
         qualified_global_evidence_count(&il, "Promise.allSettled", NodeKind::Field),
         0,
         "shadowed Promise.allSettled should not get qualified global evidence"
+    );
+}
+
+#[test]
+fn js_static_global_shadowing_stays_positional_and_function_local() {
+    let il = lower_js(
+        "function beforeBinding(value) { return Math.abs(value); }
+         const Math = { abs: (value) => value };",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        1,
+        "a use before the file's later binding keeps the global's semantics"
+    );
+
+    let il = lower_js(
+        "function readsGlobal(value) { return Math.abs(value); }
+         function bindsElsewhere() { const Math = { abs: (value) => value }; return Math.abs(1); }",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        1,
+        "a binding inside another function does not shadow this use"
+    );
+
+    let il = lower_js(
+        "function bindsBefore(value) {
+             const Math = { abs: (value) => value };
+             return Math.abs(value);
+         }",
+    );
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        0,
+        "a binding earlier in the enclosing function still shadows the use"
+    );
+
+    let il = lower_js("function headerBinds(Math, value) { return Math.abs(value); }");
+    assert_eq!(
+        unshadowed_global_evidence_count(&il, "Math"),
+        0,
+        "a parameter in the enclosing function's header still shadows the use"
+    );
+}
+
+#[test]
+fn js_local_global_shadowing_survives_an_unreadable_file_prefix() {
+    let il = crate::lower_source(
+        FileId(0),
+        "example.js",
+        b"// caf\xe9\nfunction f(value) {
+            const Math = { abs: (value) => value };
+            const Promise = { resolve: (value) => value };
+            return Promise.resolve(Math.abs(value));
+        }",
+        Lang::JavaScript,
+        &Interner::new(),
+    )
+    .expect("lower js after non-UTF-8 comment");
+
+    assert_eq!(unshadowed_global_evidence_count(&il, "Math"), 0);
+    assert_eq!(
+        qualified_global_evidence_count(&il, "Promise.resolve", NodeKind::Field),
+        0,
     );
 }
 

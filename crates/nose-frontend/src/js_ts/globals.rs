@@ -18,10 +18,7 @@ pub(super) fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> 
     ) {
         return None;
     }
-    if contract.requires_unshadowed_root
-        && (file_prefix_has_binding_ident(lo, node, contract.root)
-            || enclosing_function_prefix_has_binding_ident(lo, node, contract.root))
-    {
+    if contract.requires_unshadowed_root && js_binding_shadows_at(lo, node, contract.root) {
         return None;
     }
     let args = node.child_by_field_name("arguments")?;
@@ -53,11 +50,7 @@ pub(super) fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> 
     Some(guard)
 }
 
-pub(super) fn file_prefix_has_binding_ident(lo: &Lowering, node: TsNode, ident: &str) -> bool {
-    let end = node.start_byte();
-    if end > lo.src.len() {
-        return false;
-    }
+fn file_prefix_has_binding_ident(lo: &Lowering, prefix: &[u8], ident: &str) -> Option<bool> {
     // Most static-global names are never rebound in a given file. Establish
     // that once per name and turn every later source-position check into a
     // hash lookup. If the file does contain a binding, retain the existing
@@ -71,18 +64,26 @@ pub(super) fn file_prefix_has_binding_ident(lo: &Lowering, node: TsNode, ident: 
             found
         });
         if !file_has_binding {
-            return false;
+            return Some(false);
         }
     }
-    let prefix = std::str::from_utf8(&lo.src[..end]).unwrap_or("");
-    contains_js_binding_ident(prefix, ident)
+    let prefix = std::str::from_utf8(prefix).ok()?;
+    Some(contains_js_binding_ident(prefix, ident))
 }
 
-pub(super) fn enclosing_function_prefix_has_binding_ident(
-    lo: &Lowering,
-    node: TsNode,
-    ident: &str,
-) -> bool {
+pub(super) fn js_binding_shadows_at(lo: &Lowering, node: TsNode, ident: &str) -> bool {
+    let end = node.start_byte();
+    let Some(file_prefix) = lo.src.get(..end) else {
+        return false;
+    };
+    let file_binding = file_prefix_has_binding_ident(lo, file_prefix, ident);
+    if file_binding == Some(true) {
+        return true;
+    }
+
+    // A successful file-prefix scan covers each enclosing function body.
+    // If decoding failed, a narrower function prefix can still be valid UTF-8.
+    let scan_function_prefix = file_binding.is_none();
     let mut current = node;
     while let Some(parent) = current.parent() {
         if matches!(
@@ -90,11 +91,11 @@ pub(super) fn enclosing_function_prefix_has_binding_ident(
             "function_declaration" | "function" | "function_expression" | "arrow_function"
         ) {
             let start = parent.start_byte();
-            let end = node.start_byte();
-            if end <= lo.src.len() && start <= end {
-                let prefix = std::str::from_utf8(&lo.src[start..end]).unwrap_or("");
+            if let Some(prefix) = file_prefix.get(start..) {
+                let prefix = std::str::from_utf8(prefix).unwrap_or("");
                 let header = prefix.find('{').map(|idx| &prefix[..idx]).unwrap_or(prefix);
-                if contains_js_identifier(header, ident) || contains_js_binding_ident(prefix, ident)
+                if contains_js_identifier(header, ident)
+                    || (scan_function_prefix && contains_js_binding_ident(prefix, ident))
                 {
                     return true;
                 }
@@ -203,9 +204,8 @@ pub(super) fn lower_member_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let field = lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj]);
     let path = compact_js_expr(lo.text(node));
     if let Some(contract) = qualified_global_symbol_contract(lo.lang, &path) {
-        let root_unshadowed = !contract.requires_unshadowed_root
-            || (!file_prefix_has_binding_ident(lo, node, contract.root)
-                && !enclosing_function_prefix_has_binding_ident(lo, node, contract.root));
+        let root_unshadowed =
+            !contract.requires_unshadowed_root || !js_binding_shadows_at(lo, node, contract.root);
         if root_unshadowed {
             lo.record_qualified_global_symbol(span, NodeKind::Field, contract.path);
         }
@@ -237,8 +237,7 @@ fn js_static_global_unshadowed_at(lo: &Lowering, node: TsNode, name: &str) -> bo
     if !contract.requires_unshadowed {
         return true;
     }
-    !file_prefix_has_binding_ident(lo, node, contract.name)
-        && !enclosing_function_prefix_has_binding_ident(lo, node, contract.name)
+    !js_binding_shadows_at(lo, node, contract.name)
 }
 
 #[cfg(test)]

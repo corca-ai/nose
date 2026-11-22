@@ -6,6 +6,10 @@ break.
 
 ## [Unreleased]
 
+- Skip repeated JS/TS function-body shadowing scans when the file prefix is
+  valid UTF-8 and contains no binding. Preserve function-local shadowing when
+  earlier bytes cannot be decoded.
+
 ## [0.22.0] - 2026-11-16
 
 - Add `nose query --include-inline-suppressed` to analyze units marked with
