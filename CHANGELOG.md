@@ -6,10 +6,9 @@ break.
 
 ## [Unreleased]
 
-- Stop rescanning enclosing function bodies for JS/TS shadowing after the
-  file-prefix check has already proved no binding precedes the use; only the
-  enclosing header can still shadow it. Output is unchanged and the cold
-  frontend capture spends about 6% less CPU on the ceal tree.
+- Skip repeated JS/TS function-body shadowing scans when the file prefix is
+  valid UTF-8 and contains no binding. Preserve function-local shadowing when
+  earlier bytes cannot be decoded.
 
 ## [0.22.0] - 2026-11-16
 
