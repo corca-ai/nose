@@ -17,7 +17,7 @@
     "path-bail": 0,
     "uninterpretable": 160
   },
-  "product_crates_tree": "3dbaf361e48b5c4c6adc2b6563e356bc0f31a45b",
+  "product_crates_tree": "821bcae3c8b8500a8653d349b6d5d6842fabac92",
   "product_dependencies": {
     "Cargo.lock": "7393d8a8cf4553694cb49823bb0ca131c05e86d2",
     "Cargo.toml": "43699f79e66de220ea698ec94acf0e87ba8f94e2",
