@@ -47,3 +47,6 @@ tree-sitter-html = "0.23"
 
 [lints]
 workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+sha2 = { workspace = true, features = ["asm"] }

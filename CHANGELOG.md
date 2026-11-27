@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+- Cross-compile an x86_64 Windows GNU release archive on Linux.
+
 ## [0.22.1] - 2026-11-22
 
 - Skip repeated JS/TS function-body shadowing scans when the file prefix is

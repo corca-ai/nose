@@ -143,14 +143,32 @@ jobs:
           path: target/distrib/
           merge-multiple: true
       - name: Install dependencies
+        if: ${{ !contains(matrix.targets, 'x86_64-pc-windows-gnu') }}
         run: |
           ${{ matrix.packages_install }}
       - name: Build artifacts
+        if: ${{ !contains(matrix.targets, 'x86_64-pc-windows-gnu') }}
         run: |
-          # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
-          echo "dist ran successfully"
+      - name: Cross-compile and package Windows GNU
+        if: ${{ contains(matrix.targets, 'x86_64-pc-windows-gnu') }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64 zip
+          rustup target add x86_64-pc-windows-gnu
+          cargo build --locked --profile dist --target x86_64-pc-windows-gnu -p nose-cli
+          archive=nose-cli-x86_64-pc-windows-gnu.zip
+          mkdir -p target/distrib/windows-gnu
+          cp target/x86_64-pc-windows-gnu/dist/nose.exe LICENSE README.md CHANGELOG.md target/distrib/windows-gnu/
+          (cd target/distrib/windows-gnu && zip -q "../$archive" nose.exe LICENSE README.md CHANGELOG.md)
+          (cd target/distrib && sha256sum "$archive" > "$archive.sha256")
+          digest=$(cut -d " " -f1 "target/distrib/$archive.sha256")
+          jq --arg zip "$PWD/target/distrib/$archive" --arg sha "$PWD/target/distrib/$archive.sha256" --arg archive "$archive" --arg digest "$digest" '.upload_files = [$zip, $sha] | .artifacts[$archive].checksums.sha256 = $digest' target/distrib/plan-dist-manifest.json > dist-manifest.json
+          (cd target/distrib && sha256sum -c "$archive.sha256" && unzip -t "$archive")
+          test "$(unzip -Z -1 "target/distrib/$archive" | grep -Ec '(^|/)nose\.exe$')" -eq 1
       - name: Verify native package
+        if: ${{ matrix.targets[0] != 'x86_64-pc-windows-gnu' }}
         run: |
           python3 scripts/check-release-package.py --self-test
           python3 scripts/check-release-package.py \

@@ -283,7 +283,7 @@ Releases are cut by [cargo-dist](https://opensource.axo.dev/cargo-dist/): push a
 while the repository quality gates (`.github/workflows/ci.yml`, reused through
 `workflow_call`) are still running, but publishing is blocked until those gates pass. Only
 then does the workflow publish a GitHub Release with the macOS (Apple Silicon + Intel) and
-Linux (x86_64 + arm64) archives + checksums and push the `nose` formula to
+Linux (x86_64 + arm64), and Windows (x86_64 GNU) archives + checksums and push the `nose` formula to
 [`corca-ai/homebrew-tap`](https://github.com/corca-ai/homebrew-tap) so
 `brew install corca-ai/tap/nose` picks up the new version.
 
@@ -301,9 +301,11 @@ The tag is what triggers CI, so the CHANGELOG and version bump must land **befor
 it — a tag pushed against a stale `[Unreleased]` ships a release the changelog never
 records.
 
-Candidate pull requests build and upload the four platform archives with
-`pr-run-mode = "upload"`. Their package smoke checks validate checksums and run
-the extracted binary on the native build runner. These artifacts allow release
+Candidate pull requests build and upload the platform archives with
+`pr-run-mode = "upload"`. Package smoke checks validate checksums and run
+the macOS and Linux binaries on their native build runners. The Windows archive
+is cross-compiled on Linux; download it on Windows, verify its checksum, and run
+`nose capabilities` before merging release changes. These artifacts allow release
 verification before a publishing tag is pushed; the existing publication quality
 gate remains required. See the [0.21 candidate qualification](release-evidence-0.21.0.md)
 for the current preparation status.

@@ -17,10 +17,10 @@
     "path-bail": 0,
     "uninterpretable": 160
   },
-  "product_crates_tree": "821bcae3c8b8500a8653d349b6d5d6842fabac92",
+  "product_crates_tree": "9f78af518e7135736d40db20e281fbf19ac165d9",
   "product_dependencies": {
     "Cargo.lock": "2ba753c4298512785977588a9dac5001fdc00da7",
-    "Cargo.toml": "e149dfd1d2a97f6c1a23f9db707d816eedd75c32",
+    "Cargo.toml": "bfcd38c179dd5e4ba10f6755aee284536735bc5c",
     "vendor": "9f050edaf4a4076b3447ecd80d8def2891ef0d5f"
   },
   "schema_version": 1,
