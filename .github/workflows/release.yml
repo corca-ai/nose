@@ -160,8 +160,8 @@ jobs:
           cargo build --locked --profile dist --target x86_64-pc-windows-gnu -p nose-cli
           archive=nose-cli-x86_64-pc-windows-gnu.zip
           mkdir -p target/distrib/windows-gnu
-          cp target/x86_64-pc-windows-gnu/dist/nose.exe LICENSE README.md target/distrib/windows-gnu/
-          (cd target/distrib/windows-gnu && zip -q "../$archive" nose.exe LICENSE README.md)
+          cp target/x86_64-pc-windows-gnu/dist/nose.exe LICENSE README.md CHANGELOG.md target/distrib/windows-gnu/
+          (cd target/distrib/windows-gnu && zip -q "../$archive" nose.exe LICENSE README.md CHANGELOG.md)
           (cd target/distrib && sha256sum "$archive" > "$archive.sha256")
           digest=$(cut -d " " -f1 "target/distrib/$archive.sha256")
           jq --arg zip "$PWD/target/distrib/$archive" --arg sha "$PWD/target/distrib/$archive.sha256" --arg archive "$archive" --arg digest "$digest" '.upload_files = [$zip, $sha] | .artifacts[$archive].checksums.sha256 = $digest' target/distrib/plan-dist-manifest.json > dist-manifest.json
