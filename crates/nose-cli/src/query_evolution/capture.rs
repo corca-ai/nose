@@ -1,7 +1,10 @@
+use crate::cache::AnalysisCaptureCache;
 use crate::cli_args::QueryArgs;
 use crate::path_utils::paths_as_refs;
-use crate::query_dataset::build_query_dataset;
-use crate::query_options::ReportFormat;
+use crate::query_dataset::{
+    build_query_dataset_with_settings, resolve_query_settings, QuerySettings,
+};
+use crate::query_options::{ReportFormat, QUERY_DEFAULT_MODES};
 use anyhow::{ensure, Context, Result};
 use nose_detect::regions::evolution::{AnalysisSnapshot, FamilyObservation};
 use std::collections::BTreeMap;
@@ -41,7 +44,70 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         "analysis output already exists: {}; choose a new file",
         path.display()
     );
-    let dataset = build_query_dataset(args, &paths_as_refs(&args.paths), &[])?;
+    let (settings, packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
+    let cache = AnalysisCaptureCache::prepare(args, &settings, &packs);
+    let cached = crate::timing::time_stage("capture_cache", || {
+        let bytes = cache.as_ref()?.load()?;
+        if bytes.len() as u64 > MAX_BYTES {
+            return None;
+        }
+        let snapshot: AnalysisSnapshot = serde_json::from_slice(&bytes).ok()?;
+        snapshot.validate().ok()?;
+        Some((snapshot, bytes))
+    });
+    if std::env::var_os("NOSE_CACHE_STATS").is_some() {
+        eprintln!("  [capture-cache] hit={}", cached.is_some());
+    }
+    let (snapshot, bytes) = match cached {
+        Some(cached) => cached,
+        None => fresh_capture(args, settings, packs, cache.as_ref())?,
+    };
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    if let Err(e) = file.write_all(&bytes) {
+        drop(file);
+        let _ = std::fs::remove_file(path);
+        return Err(e.into());
+    }
+    let path = std::fs::canonicalize(path)?;
+    let next = super::navigation::command(&path, &path, 100_000, &[], args.format);
+    if args.format == ReportFormat::Json {
+        println!(
+            "{}",
+            serde_json::json!({"schema":"nose.analysis-capture/v1", "file":path,
+            "families":snapshot.families.len(), "complete":coverage(&snapshot)["complete"],
+            "population":snapshot.population, "coverage":coverage(&snapshot), "next":[next],
+            "family_lookup":{"term":"id=ID", "meaning":"Append the original live family ID to reopen its captured observations."},
+            "actions":[{"label":"Explore this capture", "command":next}]})
+        );
+    } else {
+        println!(
+            "Saved {} admitted code families to {}.",
+            snapshot.families.len(),
+            path.display()
+        );
+        super::render::coverage("Capture", &coverage(&snapshot));
+        println!(
+            "All admitted surfaces and folded overlaps included; reviews and source bodies are not stored.
+next: {next}
+Append id=ID using a live family ID to reopen its captured observations.
+To record your first decision, follow that observation's change=ID command, then the Record your decision instructions. No second capture is needed.
+Explore this capture; supply a later --after capture to inspect changes."
+        );
+    }
+    Ok(())
+}
+
+fn fresh_capture(
+    args: &QueryArgs,
+    settings: QuerySettings,
+    packs: nose_semantics::SemanticPackSet,
+    cache: Option<&AnalysisCaptureCache>,
+) -> Result<(AnalysisSnapshot, Vec<u8>)> {
+    let dataset =
+        build_query_dataset_with_settings(args, &paths_as_refs(&args.paths), &[], settings, packs)?;
     let profile = profile(&dataset)?;
     let mut family_handles: BTreeMap<_, Vec<_>> = BTreeMap::new();
     let mut families: Vec<_> = dataset
@@ -94,42 +160,12 @@ pub(crate) fn capture(args: &QueryArgs, path: &Path) -> Result<()> {
         bytes.len() as u64 <= MAX_BYTES,
         "analysis exceeds 128 MiB; narrow the analysis roots"
     );
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)?;
-    if let Err(e) = file.write_all(&bytes) {
-        drop(file);
-        let _ = std::fs::remove_file(path);
-        return Err(e.into());
+    if let Some(cache) = cache {
+        crate::timing::time_stage("capture_store", || {
+            cache.store(dataset.scope.capture_sources, &bytes)
+        });
     }
-    let path = std::fs::canonicalize(path)?;
-    let next = super::navigation::command(&path, &path, 100_000, &[], args.format);
-    if args.format == ReportFormat::Json {
-        println!(
-            "{}",
-            serde_json::json!({"schema":"nose.analysis-capture/v1", "file":path,
-            "families":snapshot.families.len(), "complete":coverage(&snapshot)["complete"],
-            "population":snapshot.population, "coverage":coverage(&snapshot), "next":[next],
-            "family_lookup":{"term":"id=ID", "meaning":"Append the original live family ID to reopen its captured observations."},
-            "actions":[{"label":"Explore this capture", "command":next}]})
-        );
-    } else {
-        println!(
-            "Saved {} admitted code families to {}.",
-            snapshot.families.len(),
-            path.display()
-        );
-        super::render::coverage("Capture", &coverage(&snapshot));
-        println!(
-            "All admitted surfaces and folded overlaps included; reviews and source bodies are not stored.
-next: {next}
-Append id=ID using a live family ID to reopen its captured observations.
-To record your first decision, follow that observation's change=ID command, then the Record your decision instructions. No second capture is needed.
-Explore this capture; supply a later --after capture to inspect changes."
-        );
-    }
-    Ok(())
+    Ok((snapshot, bytes))
 }
 
 fn profile(dataset: &crate::query_dataset::QueryDataset) -> Result<BTreeMap<String, String>> {
