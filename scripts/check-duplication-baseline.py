@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from duplication_identity import REVIEW_SCHEMA, fingerprint, review_record
+
 
 DEFAULT_BASELINE = Path("scripts/duplication-baseline.json")
 DEFAULT_BIN = Path("./target/release/nose")
@@ -23,11 +25,30 @@ def load_baseline(path: Path) -> dict[str, Any]:
     except json.JSONDecodeError as err:
         raise SystemExit(f"invalid JSON in {path}: {err}") from None
 
-    ids = baseline.get("accepted_family_ids")
+    version = baseline.get("schema_version", "0.1.0")
+    if version not in ("0.1.0", "0.2.0"):
+        raise SystemExit(f"{path}: unsupported duplication baseline schema {version!r}")
+    if version == "0.2.0":
+        if baseline.get("fingerprint_schema") != REVIEW_SCHEMA:
+            raise SystemExit(f"{path}: unsupported review fingerprint schema")
+        records = baseline.get("accepted_families")
+        if not isinstance(records, list) or not all(isinstance(row, dict) for row in records):
+            raise SystemExit(f"{path}: accepted_families must be review records")
+        ids = []
+        for record in records:
+            try:
+                expected = fingerprint(record)
+            except ValueError as error:
+                raise SystemExit(f"{path}: {error}") from None
+            if record.get("fingerprint") != expected:
+                raise SystemExit(f"{path}: review fingerprint does not match its evidence")
+            ids.append(expected)
+    else:
+        ids = baseline.get("accepted_family_ids")
     if not isinstance(ids, list) or not all(isinstance(item, str) for item in ids):
         raise SystemExit(f"{path}: accepted_family_ids must be a list of strings")
     if len(ids) != len(set(ids)):
-        raise SystemExit(f"{path}: accepted_family_ids contains duplicates")
+        raise SystemExit(f"{path}: accepted families contain duplicate approval keys")
     if not isinstance(baseline.get("budget"), int) or baseline["budget"] < 0:
         raise SystemExit(f"{path}: budget must be a non-negative integer")
     if not isinstance(baseline.get("min_value"), int) or baseline["min_value"] <= 0:
@@ -38,12 +59,12 @@ def load_baseline(path: Path) -> dict[str, Any]:
         raise SystemExit(f"{path}: recommended_surface must be a string")
     if len(ids) > baseline["budget"]:
         raise SystemExit(
-            f"{path}: {len(ids)} accepted IDs exceeds budget {baseline['budget']}"
+            f"{path}: {len(ids)} accepted families exceeds budget {baseline['budget']}"
         )
     return baseline
 
 
-def current_family_ids(nose_bin: Path, baseline: dict[str, Any]) -> list[str]:
+def current_families(nose_bin: Path, baseline: dict[str, Any]) -> list[dict[str, Any]]:
     command = [
         str(nose_bin),
         "query",
@@ -73,18 +94,28 @@ def current_family_ids(nose_bin: Path, baseline: dict[str, Any]) -> list[str]:
         raise SystemExit(f"nose JSON output was invalid: {err}") from None
 
     surface = baseline["recommended_surface"]
-    return sorted(
-        family_id
+    return [
+        family
         for family in payload.get("families", [])
-        if (family_id := family.get("id") or family.get("family_id"))
+        if (family.get("id") or family.get("family_id"))
         and (family.get("surface") or family.get("recommended_surface")) == surface
-    )
+    ]
+
+
+def current_family_keys(families: list[dict[str, Any]], baseline: dict[str, Any]) -> list[str]:
+    if baseline.get("schema_version") == "0.2.0":
+        keys = [review_record(family)["fingerprint"] for family in families]
+        if len(keys) != len(set(keys)):
+            raise ValueError("current families have ambiguous content fingerprints; refine their ownership before accepting them")
+        return sorted(keys)
+    return sorted(family.get("id") or family["family_id"] for family in families)
 
 
 def check(nose_bin: Path, baseline_path: Path) -> int:
     baseline = load_baseline(baseline_path)
-    accepted = sorted(baseline["accepted_family_ids"])
-    current = current_family_ids(nose_bin, baseline)
+    content_based = baseline.get("schema_version") == "0.2.0"
+    accepted = sorted(row["fingerprint"] for row in baseline["accepted_families"]) if content_based else sorted(baseline["accepted_family_ids"])
+    current = current_family_keys(current_families(nose_bin, baseline), baseline)
     budget = baseline["budget"]
     surface = baseline["recommended_surface"]
     min_value = baseline["min_value"]
@@ -103,10 +134,12 @@ def check(nose_bin: Path, baseline_path: Path) -> int:
     if len(current) > budget:
         failures.append(f"{len(current)} current families exceeds budget {budget}")
     if unreviewed:
-        failures.append("unreviewed current family IDs: " + ", ".join(unreviewed))
+        label = "content fingerprints" if content_based else "family IDs"
+        failures.append("unreviewed current " + label + ": " + ", ".join(unreviewed))
     if resolved_or_changed:
         failures.append(
-            "baseline IDs no longer reported: " + ", ".join(resolved_or_changed)
+            ("accepted content fingerprints" if content_based else "baseline IDs")
+            + " no longer reported: " + ", ".join(resolved_or_changed)
         )
 
     if failures:
@@ -130,11 +163,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bin", type=Path, default=DEFAULT_BIN)
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
+    parser.add_argument("--dump-current", action="store_true", help="print content-bound review records without accepting or writing a baseline")
     args = parser.parse_args()
 
     if not args.bin.exists():
         raise SystemExit(f"nose binary not found at {args.bin}; build with: cargo build --release")
-    return check(args.bin, args.baseline)
+    try:
+        if args.dump_current:
+            baseline = load_baseline(args.baseline)
+            records = [review_record(family) for family in current_families(args.bin, baseline)]
+            print(json.dumps(records, indent=2, ensure_ascii=False))
+            return 0
+        return check(args.bin, args.baseline)
+    except ValueError as error:
+        raise SystemExit(f"duplication review evidence is invalid: {error}") from None
 
 
 if __name__ == "__main__":

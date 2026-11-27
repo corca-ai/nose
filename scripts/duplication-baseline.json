@@ -1,28 +1,613 @@
 {
-  "accepted_family_ids": [
-    "0028e1c168824352",
-    "08bef91578054823",
-    "09685d6df25416a9",
-    "117ea7496a47614a",
-    "2243ff172880aa06",
-    "4dc98859316918eb",
-    "53dc1560776f2450",
-    "5ad08a3c9ab9f5c3",
-    "62b365e33e18d2f0",
-    "90373a49a4b8174d",
-    "9f4c7edd3f5ece8d",
-    "bbbcb53d5f161643",
-    "c2698e293c4c4d57",
-    "cad1fc2eb22587f4",
-    "cf7e3e2870c92ccb",
-    "d5b71caad2f11878",
-    "ea682c9db2126d8a",
-    "f315bdc04ec06036"
+  "accepted_families": [
+    {
+      "display_family_id": "bbbcb53d5f161643",
+      "fingerprint": "200d7d53a717fbc041041ee9dfea404996579875ed196575f595ff41fc434f98",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/query_evolution/selection.rs",
+          "region_key": "b428fadcfd330ad7e3caa6788660066afc8c45fb92024bff358d7a2064ebd076",
+          "shared_subdag_offsets": null,
+          "symbol": "Selection"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/query_terms.rs",
+          "region_key": "9fb5bbcd71596d0bdf76915700841d12b3bd5f2467e5d05367d52b1cbde0f7f0",
+          "shared_subdag_offsets": null,
+          "symbol": "parse_query"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "5ad08a3c9ab9f5c3",
+      "fingerprint": "24a02edbc3bddf730ad99900a87fb755b155b14f4581ebb0c2452b08024fc50b",
+      "members": [
+        {
+          "enclosing": {
+            "file": "crates/nose-detect/src/fragment/loop_effect.rs",
+            "kind": "Function",
+            "symbol": "block_depends_on_iter"
+          },
+          "file": "crates/nose-detect/src/fragment/loop_effect.rs",
+          "region_key": "d42688f989a313ca0a3ec8ad655816b655501d670871c654b393068e5e7af98a",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        },
+        {
+          "enclosing": {
+            "file": "crates/nose-detect/src/units/fragments/loop_effect.rs",
+            "kind": "Function",
+            "symbol": "foreach_block_depends_on_iter"
+          },
+          "file": "crates/nose-detect/src/units/fragments/loop_effect.rs",
+          "region_key": "e39b00df89d8cfa96b5f1c3d8cac3e2f94417740f6985d53d861c1b950681a45",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "similar"
+    },
+    {
+      "display_family_id": "c2698e293c4c4d57",
+      "fingerprint": "298d88c6260733f6bc5292ac4fd1272362bffbd46fb0ef73f90e704f96933440",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "14cbcfdb6558fa9025bd02c60ace3c54728140e229fd2b308aa759d7358660b5",
+          "shared_subdag_offsets": [
+            75,
+            75
+          ],
+          "symbol": "generated_provenance_json"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "2e5a3ca3338ea0e099e5d1c1cb893a3c34735a73913ad14339d1c733bbdfcc98",
+          "shared_subdag_offsets": [
+            13,
+            13
+          ],
+          "symbol": "family_is_compiled_css_pipeline"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "48d7e522e2c7ac41a030fb596e23cd9c53d7f5707652edaf409b04eda928f74f",
+          "shared_subdag_offsets": [
+            160,
+            160
+          ],
+          "symbol": "effective_surface"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "a1fb601de857f3db253929eef801b670b44b89e94469c6afd6bf64da4efc6c1d",
+          "shared_subdag_offsets": [
+            134,
+            134
+          ],
+          "symbol": "is_default_opportunity_family"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "a23b41d418b1f7cd28a3a30658204878ec31b57f5e05a33ce9f7cfe04bbca8a7",
+          "shared_subdag_offsets": [
+            87,
+            87
+          ],
+          "symbol": "family_generated_source"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "e473eb97391a55d2907dc4f30e9a789cfba7ec77a8862493803b04800afaea3c",
+          "shared_subdag_offsets": [
+            116,
+            116
+          ],
+          "symbol": "family_actionability_reason"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/surfaces.rs",
+          "region_key": "ef1891511cf509708042789229bd32d79d8ca6876764ef6fbf231438ff376888",
+          "shared_subdag_offsets": [
+            34,
+            34
+          ],
+          "symbol": "family_established_generated_source"
+        }
+      ],
+      "scope": "mixed",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "4dc98859316918eb",
+      "fingerprint": "299aa6a13add6fda4bfed165927f7dba6da57f46953721becb6e8aa873160d08",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/operators/value_domains.rs",
+          "region_key": "be430f1816019f91606f4dd10baf696ecd1e337fec33eba22e53c2206dae4b4c",
+          "shared_subdag_offsets": null,
+          "symbol": "OperatorSemantics"
+        },
+        {
+          "enclosing": {
+            "file": "crates/nose-semantics/src/operators/callback_effects.rs",
+            "kind": "Function",
+            "symbol": "callback_literal_domain"
+          },
+          "file": "crates/nose-semantics/src/operators/callback_effects.rs",
+          "region_key": "255b68c69871dc9e1035132a18494dbf1f30bc1894440dbd1d27cd3486ede48e",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "62b365e33e18d2f0",
+      "fingerprint": "31a4c892deaccc54c723c0d7a38349a22d6044b2ed35e99dc8535097d1d0ef2b",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/capabilities.rs",
+          "region_key": "3ee1e60b34ad6e08088de4c8404facf29be242bf6f6d79b16250803971bdf7b2",
+          "shared_subdag_offsets": [
+            1,
+            49
+          ],
+          "symbol": "query_capability_flags"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/capabilities.rs",
+          "region_key": "6019748bc0059fd7d5b1043d199459bf03a912bcf5f430a477e4f59de0ef4841",
+          "shared_subdag_offsets": [
+            130,
+            178
+          ],
+          "symbol": "Report"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "ea682c9db2126d8a",
+      "fingerprint": "47b412e5161d356a8c2ad0adfc5352776bf8ab10ca76e75b56637b2697aa9b84",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/language_profile.rs",
+          "region_key": "2f1ab32627f9055378606227896151e386528bced06034b7650554d22474e006",
+          "shared_subdag_offsets": null,
+          "symbol": "language_source_fact_provenance"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/language_profile.rs",
+          "region_key": "4a19c9dd537c7d59c2694ebec388a78a43a02dc060321dce553af8d75f3878b1",
+          "shared_subdag_offsets": null,
+          "symbol": "builtin_language_pack_id"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/language_profile.rs",
+          "region_key": "5342205776c8e6fcac9e38a7483c0e4c14a4d727bbf1453711c32cad5ea30f08",
+          "shared_subdag_offsets": null,
+          "symbol": "language_core_evidence_provenance"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/type_domain.rs",
+          "region_key": "3b811d959bd833dc4e2996ce065c9055bf4910d71f3b35e5fdced3e16401e00d",
+          "shared_subdag_offsets": null,
+          "symbol": "type_domain_from_source_text"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "08bef91578054823",
+      "fingerprint": "569af02594db376d6acf0daebd5213b2d08b6a1176edb439ad43c844dfc92992",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-detect/src/strict_exact/tests/support.rs",
+          "region_key": "9c1033f8a97177b603c940dabcddb96aa21680122acc8bb0cd11dce036c2f45d",
+          "shared_subdag_offsets": null,
+          "symbol": "sp"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-detect/src/test_support.rs",
+          "region_key": "1953788bf3e6afc5ba846910a10cad618b9723c8371b4d09858fc9d31e83c223",
+          "shared_subdag_offsets": null,
+          "symbol": "span"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-detect/src/units/tests/support.rs",
+          "region_key": "9c1033f8a97177b603c940dabcddb96aa21680122acc8bb0cd11dce036c2f45d",
+          "shared_subdag_offsets": null,
+          "symbol": "sp"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/binding_evidence/tests.rs",
+          "region_key": "5514ce8069bb6faa41edeef66d63d7803ee9165cc30661fda3531c62bce7829a",
+          "shared_subdag_offsets": null,
+          "symbol": "sp"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/module_facts.rs",
+          "region_key": "df06a87e94bccaf4974583d128f7d3ca5bbf3e26d80452874c2d11ec72f6adb2",
+          "shared_subdag_offsets": null,
+          "symbol": "sp"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/value_graph/tests/support.rs",
+          "region_key": "9c1033f8a97177b603c940dabcddb96aa21680122acc8bb0cd11dce036c2f45d",
+          "shared_subdag_offsets": null,
+          "symbol": "sp"
+        }
+      ],
+      "scope": "test",
+      "witness": "exact"
+    },
+    {
+      "display_family_id": "53dc1560776f2450",
+      "fingerprint": "5a74cd1a461b72a2f3b277d99dd2434dc81d62b3063e37eea5f0849d46b12416",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-frontend/src/css.rs",
+          "region_key": "7e64e54c062ab19ea9d3c74a73283ed85d6b135102b91b5955e6e190c666a694",
+          "shared_subdag_offsets": null,
+          "symbol": "is_selector_kind"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-frontend/src/python/expressions.rs",
+          "region_key": "64d66825e775e0ee78e33a32f9c7b7e2c8738f3bba1a8517a0ee1f43fe7704db",
+          "shared_subdag_offsets": null,
+          "symbol": "is_op_tok"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/type_domain.rs",
+          "region_key": "e3a6fd58f3612452afc9d069ab1c6d7457246d5b04337c4bc9da1feabb0a240e",
+          "shared_subdag_offsets": null,
+          "symbol": "rust_integer_type"
+        }
+      ],
+      "scope": "prod",
+      "witness": "similar"
+    },
+    {
+      "display_family_id": "117ea7496a47614a",
+      "fingerprint": "5d4c9173270a0b0b43128c0d3723273a9ef20f24d7cb77c528e5f0d0789ca73e",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/packs/exact_registry.rs",
+          "region_key": "f1df5c4062ce5788f87ad84cf29dce8f8a441fe57bd5ae09ba336c48bb29ed5b",
+          "shared_subdag_offsets": null,
+          "symbol": "SemanticPackExternalExactRegistry"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/packs/near_registry.rs",
+          "region_key": "215b8b376baa476021bc6a51db06b5ff4d88d179ab943090e3f4d7266cb915f9",
+          "shared_subdag_offsets": null,
+          "symbol": "SemanticPackNearRegistry"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "90373a49a4b8174d",
+      "fingerprint": "67cd6900a50a19c6b965e46831bd20b35b947d1e415ab168b0371c7be377100e",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/value_graph/field_state.rs",
+          "region_key": "eb57870e374f73c52d170207e186b261235d0555820bcb176e9fea5c086b50f9",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        },
+        {
+          "enclosing": {
+            "file": "crates/nose-normalize/src/value_graph/stdlib/bindings.rs",
+            "kind": "Function",
+            "symbol": "proven_local_binding_initializer_value"
+          },
+          "file": "crates/nose-normalize/src/value_graph/stdlib/bindings.rs",
+          "region_key": "0fedc2636605516af24d61c59858e9cba14e67a52de6c6addaac1a0a14050a5f",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "f315bdc04ec06036",
+      "fingerprint": "74f418283c069299578699ab844cf1cd06273a7d57d88aa503782d3eb7184440",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/library_api/contract_keys.rs",
+          "region_key": "3b456801d358192513f07583ed6d272edb45a7ee43eed1dd5938f59f19f7918a",
+          "shared_subdag_offsets": null,
+          "symbol": "method_receiver_contract_key"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-semantics/src/method_contracts.rs",
+          "region_key": "6815ac1416bb7a9cd3b3dd37ae6736c27dee2ba9a21291e0a0b0d6c987dfb3cd",
+          "shared_subdag_offsets": null,
+          "symbol": "method_receiver_domain_requirement"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "2243ff172880aa06",
+      "fingerprint": "7a24e3bd27320d44829065664242f52b9b25f1a58f8180f1daa32301fa12f1b3",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/divergence/change_witness/loading.rs",
+          "region_key": "43201c8c1f089a742d7e430349aafe9b844762d4afae20da22bcfc2b037a12bf",
+          "shared_subdag_offsets": [
+            18,
+            18
+          ],
+          "symbol": "preload_files"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/src/divergence/change_witness/loading.rs",
+          "region_key": "aeefdd44b0850ad7de0c028e037fa5b0532ec4af13d4eadec1f19ab995d481c2",
+          "shared_subdag_offsets": [
+            20,
+            20
+          ],
+          "symbol": "preload_base_unit_projections"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "cf7e3e2870c92ccb",
+      "fingerprint": "99a608df46e0a5548af55301ee2c619456de42bd5669a87a0c08269aaad5908d",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/value_graph/collections/cardinality.rs",
+          "region_key": "c30073384c7543de5ae795222af4a14c2eec9d1dd824d2611618b4d3948cc0f5",
+          "shared_subdag_offsets": [
+            172,
+            172
+          ],
+          "symbol": null
+        },
+        {
+          "enclosing": {
+            "file": "crates/nose-normalize/src/value_graph/collections/reductions.rs",
+            "kind": "Function",
+            "symbol": "reduction_bool"
+          },
+          "file": "crates/nose-normalize/src/value_graph/collections/reductions.rs",
+          "region_key": "e508667de8cb4bb1e94b96274ca3446b6d3794a50b32fe73ffa8d4c5cda4c973",
+          "shared_subdag_offsets": [
+            7,
+            7
+          ],
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "cad1fc2eb22587f4",
+      "fingerprint": "b3d3872fd264bc341769777fa8aa255152d029b40b383d88963a51d39ad1389b",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-detect/src/cluster.rs",
+          "region_key": "7fd835d5d85be8e424b37eaa2c12e94001363eba03cc43c3bc8b983f53c0447f",
+          "shared_subdag_offsets": null,
+          "symbol": "UnionFind"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-markdown/src/detect.rs",
+          "region_key": "18647ff227a60bf16d93a27424c3721b07ab1965bc9cb8d66ea6212ab82ef769",
+          "shared_subdag_offsets": null,
+          "symbol": "UnionFind"
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "0028e1c168824352",
+      "fingerprint": "cd1656c9438811df3ab6a44fddad51fc154e50f36ac5909d6015e8f98cc43bac",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/interp/exec.rs",
+          "region_key": "8447baedbe85bef26924e9391b1fb0cdbcb2c9294e42144ac6f678c2aef77e0f",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/value_graph/control/statements.rs",
+          "region_key": "34558a7d0997b7651d9d1f0ae7a705ffb4509c937cd123cde10fa20fe5f0fbd3",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "d5b71caad2f11878",
+      "fingerprint": "e26a85233ed5c137132d44b78634fe20e5d046641ec30d8de479d8de881e2385",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/analysis_changes.rs",
+          "region_key": "af96e6d674764e7d1d22ca94490a18e04bfc74b9700a43df484ec02131b2887a",
+          "shared_subdag_offsets": [
+            18,
+            23
+          ],
+          "symbol": "Project"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/regions.rs",
+          "region_key": "e29f1ddad3e82c07378d8fd1524817bcc66a52b4c8616ced7e1c1d714b2d93f0",
+          "shared_subdag_offsets": [
+            17,
+            22
+          ],
+          "symbol": "Project"
+        }
+      ],
+      "scope": "test",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "9f4c7edd3f5ece8d",
+      "fingerprint": "ede0090b4a9f2b60245e46dc5fe1fd57ccadd2c541db5e1f4987d3b7d0ab2a34",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-frontend/src/module_imports/exports.rs",
+          "region_key": "d426b2ebb5807e5deeeba13aa58c17cf405cd2e1099941df53265c7b6821720e",
+          "shared_subdag_offsets": null,
+          "symbol": "collect_statement_exports"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/module_facts.rs",
+          "region_key": "4d1d00a5a21cf7f015404489aa6222d177c5ca6d1d3d14af2ce687e91b237b3f",
+          "shared_subdag_offsets": null,
+          "symbol": "assignment_name_counts"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-normalize/src/value_graph/context.rs",
+          "region_key": "00cd5ea117e3c081fc6b344246ab5481dde843ad49179b4b410244fd77068280",
+          "shared_subdag_offsets": null,
+          "symbol": null
+        }
+      ],
+      "scope": "prod",
+      "witness": "subdag"
+    },
+    {
+      "display_family_id": "09685d6df25416a9",
+      "fingerprint": "f070024666904166b890fce2e5f4c83f069d5d24038032c642e3470a49596ee4",
+      "members": [
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "314a9d0caf014417d6140c0dddee75351e2f4e6da33b64c6a47b39c28c7f3338",
+          "shared_subdag_offsets": [
+            16,
+            16
+          ],
+          "symbol": "incomplete_changed_file_coverage_cannot_claim_a_unique_candidate"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "3a9283f9b150e91646938cb6d30d8305b2a22ab06c9a6c91a45f90ee8b6075bb",
+          "shared_subdag_offsets": [
+            5,
+            5
+          ],
+          "symbol": "candidate_cap_never_exposes_a_truncated_unique_match"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "5ba1ca45a25718f98d58ab2452f803f21a38324382447207db56976866a9ae88",
+          "shared_subdag_offsets": [
+            7,
+            7
+          ],
+          "symbol": "competing_moved_copies_are_not_resolved_by_file_order"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "682a278db76db3d637ea4848f3c3eb34d38e25d46df5cf236d20041249565ea7",
+          "shared_subdag_offsets": [
+            5,
+            5
+          ],
+          "symbol": "actual_named_edit_keeps_its_semantic_evidence_even_when_the_old_body_was_copied"
+        },
+        {
+          "enclosing": null,
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "96d94254932c15f8a5da06911d1a334f483cd36c855221851a1d6c7367384edf",
+          "shared_subdag_offsets": [
+            5,
+            5
+          ],
+          "symbol": "moved_function_exposes_original_byte_match_and_downgrades_wrong_range_alignment"
+        },
+        {
+          "enclosing": {
+            "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+            "kind": "Function",
+            "symbol": "moved_function_keeps_candidates_when_original_unit_or_file_is_missing"
+          },
+          "file": "crates/nose-cli/tests/cli/query_base/region_matches.rs",
+          "region_key": "d19d7349567cede205990db0238c62600d0ff41d7190c99ec33c7c6a9a694b30",
+          "shared_subdag_offsets": [
+            9,
+            9
+          ],
+          "symbol": null
+        }
+      ],
+      "scope": "test",
+      "witness": "subdag"
+    }
   ],
   "budget": 20,
+  "fingerprint_schema": "nose.duplication-review.v1",
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",
   "min_value": 40,
   "mode": "near",
   "recommended_surface": "default",
-  "schema_version": "0.1.0"
+  "schema_version": "0.2.0"
 }

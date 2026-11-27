@@ -942,7 +942,7 @@
       "owner": "nose-on-nose duplication ratchet",
       "implementation": "scripts/check-duplication.sh",
       "tools": ["cargo", "nose binary", "python3 >= 3.10"],
-      "inputs": ["crates/", "scripts/duplication-baseline.json"],
+      "inputs": ["crates/", "scripts/duplication-baseline.json", "scripts/check-duplication.sh", "scripts/check-duplication-baseline.py", "scripts/duplication_identity.py", "scripts/test-duplication-identity.py"],
       "worktree_effect": "read-only",
       "outputs": ["target/duplication-gate/"],
       "cache": "cargo",

@@ -185,7 +185,7 @@ the target prune step.
 ### The duplication gate (dogfooding)
 
 nose *is* a clone detector, so it polices its own duplication. The gate fails when
-the substantial Type-3 near-duplicate family IDs (refactoring value ≥ 40, default
+the substantial Type-3 near-duplicate review fingerprints (refactoring value ≥ 40, default
 surface) on the crates differ from the reviewed baseline in
 `scripts/duplication-baseline.json`. The scan includes tests as well as production
 code, so fixture/scaffolding copy-paste is visible instead of hidden behind
