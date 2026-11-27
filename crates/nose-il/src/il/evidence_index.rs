@@ -1,4 +1,8 @@
 use super::*;
+use rustc_hash::FxHashMap;
+
+#[cfg(test)]
+mod tests;
 
 /// See [`Il::evidence_anchored_at`]: exact-anchor-span buckets and id→index
 /// resolution, replacing the per-query linear `evidence` scans that were
@@ -12,11 +16,13 @@ pub(super) struct EvidenceIndex {
     /// boundary. Arbitrary edits must invalidate through `Il`; this sentinel
     /// alone cannot detect changes elsewhere in an existing prefix.
     pub(super) sentinel: Option<(u32, EvidenceAnchor)>,
-    pub(super) by_anchor_span: std::collections::HashMap<(u32, u32, u32), Vec<u32>>,
+    pub(super) by_anchor_span: FxHashMap<(u32, u32, u32), Vec<u32>>,
     /// `Binding` anchors are queried by `local_hash` (not span) — see
     /// [`Il::evidence_binding_anchored`] — so they get their own bucket.
-    pub(super) by_binding_hash: std::collections::HashMap<u64, Vec<u32>>,
-    pub(super) by_id: std::collections::HashMap<u32, u32>,
+    pub(super) by_binding_hash: FxHashMap<u64, Vec<u32>>,
+    /// Positional ids resolve directly in the evidence arena. Only non-positional
+    /// ids need a fallback entry, retaining the first occurrence for duplicates.
+    sparse_ids: FxHashMap<u32, u32>,
 }
 
 impl EvidenceIndex {
@@ -46,13 +52,9 @@ impl EvidenceIndex {
                     .or_default()
                     .push(idx as u32);
             }
-            // Mirror `evidence_record_by_id`: the record at position `id` wins;
-            // otherwise the first record with that id.
             let id = record.id.0;
-            if id as usize == idx {
-                self.by_id.insert(id, idx as u32);
-            } else {
-                self.by_id.entry(id).or_insert(idx as u32);
+            if id as usize != idx {
+                self.sparse_ids.entry(id).or_insert(idx as u32);
             }
         }
         self.indexed_len = evidence.len();
@@ -75,10 +77,19 @@ impl EvidenceIndex {
                 continue;
             }
             seen.push(id);
-            let Some(&dep_idx) = self.by_id.get(&id.0) else {
+            // Mirror `evidence_record_by_id`: a positional id wins even when
+            // an earlier non-positional record has the same id.
+            let Some(dep) = evidence
+                .get(id.0 as usize)
+                .filter(|record| record.id == id)
+                .or_else(|| {
+                    self.sparse_ids
+                        .get(&id.0)
+                        .map(|&idx| &evidence[idx as usize])
+                })
+            else {
                 return false;
             };
-            let dep = &evidence[dep_idx as usize];
             if dep.status != EvidenceStatus::Asserted {
                 return false;
             }

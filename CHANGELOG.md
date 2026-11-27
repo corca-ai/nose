@@ -6,6 +6,10 @@ break.
 
 ## [Unreleased]
 
+- Reduce cold-analysis proof lookup overhead with faster internal span and
+  lexical indexes and direct resolution of positional evidence ids. Preserve
+  sparse/duplicate-id precedence and live dependency validation.
+
 ## [0.22.1] - 2026-11-22
 
 - Skip repeated JS/TS function-body shadowing scans when the file prefix is

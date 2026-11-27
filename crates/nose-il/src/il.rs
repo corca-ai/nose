@@ -37,17 +37,17 @@ pub struct Il {
     unique_parent_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
     /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]).
     #[serde(skip)]
-    span_index: std::sync::OnceLock<std::collections::HashMap<(u32, u32), Vec<u32>>>,
+    span_index: std::sync::OnceLock<rustc_hash::FxHashMap<(u32, u32), Vec<u32>>>,
     /// Lazy nearest-scope → assign-node-ids index (see [`Il::assigns_in_scope`]).
     /// Keyed by the scope's node id (+1, with `0` for module level), each bucket
     /// in arena order. Invalidated alongside `scope_index`.
     #[serde(skip)]
-    assign_scope_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    assign_scope_index: std::sync::OnceLock<rustc_hash::FxHashMap<u32, Vec<NodeId>>>,
     /// Lazy canonical-id → parameter-node index (see [`Il::params_with_cid`]).
     /// Used by the synthetic/no-source-scope fallback without a per-reference
     /// arena walk.
     #[serde(skip)]
-    param_cid_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
+    param_cid_index: std::sync::OnceLock<rustc_hash::FxHashMap<u32, Vec<NodeId>>>,
     /// Lazy per-scope local-binder index (params plus assignment/foreach
     /// targets). Keeps pre-alpha shadow checks and post-alpha reassignment checks
     /// complete without per-reference subtree walks.
@@ -391,8 +391,8 @@ impl Il {
     /// immutability discipline (see the `span_index` field).
     pub fn nodes_spanning(&self, span: Span) -> impl Iterator<Item = NodeId> + '_ {
         let index = self.span_index.get_or_init(|| {
-            let mut by_bytes: std::collections::HashMap<(u32, u32), Vec<u32>> =
-                std::collections::HashMap::new();
+            let mut by_bytes: rustc_hash::FxHashMap<(u32, u32), Vec<u32>> =
+                rustc_hash::FxHashMap::default();
             for (idx, node) in self.nodes.iter().enumerate() {
                 by_bytes
                     .entry((node.span.start_byte, node.span.end_byte))
