@@ -2446,3 +2446,19 @@ threshold for both binaries. Its file retains SHA-256
 Remove that stale navigation ID without changing the numeric-policy judgment
 or raising the budget. Full queries are retained under
 `target/perf-design/capture-dogfood-{parent,final}.json`.
+
+## Content-bound duplication review identities (2026-11-27)
+
+The gate previously reused live file/span IDs as approval keys. Unrelated line
+insertions changed those IDs, while same-span body edits could retain them.
+The v0.2 baseline binds existing region content signatures to the reported file,
+symbol, enclosing owner and relative shared computation, scope and witness.
+Live IDs remain historical navigation hints. Identical occurrences retain their
+multiplicity; missing provenance or ambiguous relations cannot be auto-approved.
+
+All eighteen currently reviewed relations migrate from the same frozen full
+query. No new relation is accepted, and mode `near`, minimum value forty,
+default surface and budget twenty stay unchanged. New, missing and over-budget
+relations still fail. The checker regression tests cover line/byte movement,
+same-span content edits, owner/witness/scope changes, reordered and added copies,
+incomplete provenance, ambiguity, baseline tampering and legacy compatibility.

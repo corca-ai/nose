@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Bind self-duplication approvals to region content and ownership instead of
+  source positions. Unrelated line shifts retain approval; changed bodies need
+  review even at unchanged positions. Keep new, missing and budget checks.
 - Reuse complete `--save-analysis` results with `--cache-dir` when all source
   contents, membership, analysis settings and the engine binary are unchanged.
   Large captures can skip repeated feature loading and global comparison.

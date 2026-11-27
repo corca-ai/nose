@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Duplication gate — nose dogfooding itself.
 #
-# Fails when the set of *substantial* duplicate families on nose's own source differs
-# from the accepted baseline. The mode, minimum refactoring value, output surface, and
-# accepted family IDs live in scripts/duplication-baseline.json; the decision trail lives
+# Fails when the set of *substantial* duplicate relations on nose's own source differs
+# from the accepted content-bound baseline. The mode, minimum value, output surface, and
+# accepted review fingerprints live in scripts/duplication-baseline.json; the decision trail lives
 # in docs/dogfooding-history.md. To accept a genuinely new one, either dedupe it or update
 # the baseline and history with a one-line justification in the PR.
 #
@@ -305,4 +305,5 @@ if [ ! -x "$BIN" ]; then
     exit 2
 fi
 
+NOSE_BIN="$BIN" python3 scripts/test-duplication-identity.py
 python3 scripts/check-duplication-baseline.py --bin "$BIN" --baseline "$BASELINE"
