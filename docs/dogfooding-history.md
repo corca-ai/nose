@@ -2430,7 +2430,7 @@ are retained locally as `/tmp/nose-1014-self-{old-tree,base-engine,head-engine}.
 
 The current source has eighteen substantial default near families at value
 threshold forty, within the unchanged budget of twenty. Frozen parent
-`91c040da` and capture candidate `6d826951` produce byte-identical full near-query
+`91c040da` and final capture candidate `e7663f42` produce byte-identical full near-query
 JSON on this same source tree. These are source-corpus navigation changes,
 not new detector behavior or new accepted implementations.
 
@@ -2445,4 +2445,4 @@ threshold for both binaries. Its file retains SHA-256
 `53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
 Remove that stale navigation ID without changing the numeric-policy judgment
 or raising the budget. Full queries are retained under
-`target/perf-design/capture-dogfood-{parent,current}.json`.
+`target/perf-design/capture-dogfood-{parent,final}.json`.
