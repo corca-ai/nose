@@ -20,11 +20,11 @@ publish-jobs = ["homebrew"]
 # release.yml intentionally wires the repository CI gate into cargo-dist's generated workflow.
 allow-dirty = ["ci"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-gnu"]
 
 # macOS 14 runners were retired on 2026-11-02.
 [dist.github-custom-runners]
 aarch64-apple-darwin = "macos-15"
 
-# Cross-compile the Windows archive on Linux with cargo-dist's cargo-xwin support.
-x86_64-pc-windows-msvc = "ubuntu-22.04"
+# Cross-compile the Windows archive on Linux with plain Cargo and MinGW.
+x86_64-pc-windows-gnu = "ubuntu-22.04"

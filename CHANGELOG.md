@@ -6,7 +6,7 @@ break.
 
 ## [Unreleased]
 
-- Cross-compile an x86_64 Windows MSVC release archive on Linux.
+- Cross-compile an x86_64 Windows GNU release archive on Linux.
 
 ## [0.22.1] - 2026-11-22
 

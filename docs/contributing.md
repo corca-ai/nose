@@ -283,7 +283,7 @@ Releases are cut by [cargo-dist](https://opensource.axo.dev/cargo-dist/): push a
 while the repository quality gates (`.github/workflows/ci.yml`, reused through
 `workflow_call`) are still running, but publishing is blocked until those gates pass. Only
 then does the workflow publish a GitHub Release with the macOS (Apple Silicon + Intel) and
-Linux (x86_64 + arm64), and Windows (x86_64 MSVC) archives + checksums and push the `nose` formula to
+Linux (x86_64 + arm64), and Windows (x86_64 GNU) archives + checksums and push the `nose` formula to
 [`corca-ai/homebrew-tap`](https://github.com/corca-ai/homebrew-tap) so
 `brew install corca-ai/tap/nose` picks up the new version.
 
