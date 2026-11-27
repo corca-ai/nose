@@ -4,8 +4,10 @@
 # commits, so the corpus MUST be pinned — never point the detector at a working copy
 # that can drift (that silently invalidates every measurement).
 #
-# bench/repos is gitignored (111M). This script is rerunnable: existing pinned
-# clones are reset to the exact commit before pruning is applied again.
+# bench/repos is gitignored. See corpus_digest_after_prune.bytes in
+# bench/labels/prune_manifest.json for the post-prune file-byte count; Git metadata
+# and filesystem overhead require additional disk space. This script is rerunnable:
+# existing pinned clones are reset to the exact commit before pruning is applied again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

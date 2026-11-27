@@ -1,7 +1,7 @@
 use super::Il;
 use crate::intern::Symbol;
 use crate::node::{LoopKind, NodeId, NodeKind, Payload};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[derive(Debug, Default)]
 pub(super) struct ScopeBindingIndex {
@@ -48,7 +48,7 @@ impl Il {
     /// whole-arena pass per query before.
     pub fn assigns_in_scope(&self, scope: Option<NodeId>) -> &[NodeId] {
         let index = self.assign_scope_index.get_or_init(|| {
-            let mut by_scope: HashMap<u32, Vec<NodeId>> = HashMap::new();
+            let mut by_scope: HashMap<u32, Vec<NodeId>> = HashMap::default();
             for (idx, node) in self.nodes.iter().enumerate() {
                 if node.kind != NodeKind::Assign {
                     continue;
@@ -73,7 +73,7 @@ impl Il {
     /// no containment, without restoring the old per-reference arena scan.
     pub fn params_with_cid(&self, cid: u32) -> impl Iterator<Item = NodeId> + '_ {
         let index = self.param_cid_index.get_or_init(|| {
-            let mut by_cid: HashMap<u32, Vec<NodeId>> = HashMap::new();
+            let mut by_cid: HashMap<u32, Vec<NodeId>> = HashMap::default();
             for (idx, node) in self.nodes.iter().enumerate() {
                 if node.kind == NodeKind::Param {
                     if let Payload::Cid(cid) = node.payload {
@@ -142,7 +142,7 @@ impl Il {
 
     fn build_scope_binding_index(&self) -> ScopeBindingIndex {
         let mut index = ScopeBindingIndex::default();
-        let mut direct_params = HashSet::new();
+        let mut direct_params = HashSet::default();
         let mut reachable = vec![false; self.nodes.len()];
         let mut stack = vec![self.root];
         stack.extend(self.units.iter().map(|unit| unit.root));

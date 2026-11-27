@@ -92,6 +92,15 @@ source-fact helpers in `nose-semantics`. Source-origin proof is evidence-only:
 frontends emit `EvidenceKind::Source` records directly, and consumers do not
 fall back to a side-table mirror when source evidence is missing.
 
+Each IL arena keeps lazy, nonserialized indexes for source spans, lexical
+bindings, and evidence anchors. These lookup tables use integer or interned-symbol
+keys with `FxHashMap`/`FxHashSet`; their buckets retain arena order. Evidence
+dependencies resolve positional ids directly in the evidence arena, with a sparse
+index for non-positional ids. A matching positional record takes precedence over
+duplicates elsewhere; otherwise the first matching record wins. Dependency walks
+still read current statuses and dependency lists, and mutable arena access
+invalidates the derived indexes.
+
 - Generic language-core evidence and source facts emitted by frontend lowering
   carry the current builtin language pack producer provenance, such as
   `nose.lang.python`, `nose.lang.javascript-typescript`, `nose.lang.rust`, or
