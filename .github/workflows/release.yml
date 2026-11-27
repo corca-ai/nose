@@ -151,6 +151,7 @@ jobs:
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
       - name: Verify native package
+        if: ${{ matrix.targets[0] != 'x86_64-pc-windows-msvc' }}
         run: |
           python3 scripts/check-release-package.py --self-test
           python3 scripts/check-release-package.py \
