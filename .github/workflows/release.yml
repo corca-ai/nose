@@ -153,6 +153,13 @@ jobs:
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
+      - name: Verify Windows archive integrity
+        if: ${{ matrix.targets[0] == 'x86_64-pc-windows-msvc' }}
+        run: |
+          cd target/distrib
+          sha256sum -c nose-cli-x86_64-pc-windows-msvc.zip.sha256
+          unzip -t nose-cli-x86_64-pc-windows-msvc.zip
+          test "$(unzip -Z -1 nose-cli-x86_64-pc-windows-msvc.zip | grep -Ec '(^|/)nose\.exe$')" -eq 1
       - name: Verify native package
         if: ${{ matrix.targets[0] != 'x86_64-pc-windows-msvc' }}
         run: |
