@@ -188,7 +188,7 @@
       "consumers": ["Type-4 frontier, query-regression, and adversarial gates"],
       "retention_policy": "Preserve current gold/frontier inputs and any sealed or closeout evidence.",
       "artifact_count": 29,
-      "inventory_sha256": "f7ea6428b65556e0743cd30ba5527eb2b7b6abe84ba30e37b1b62d9a2f9700c3"
+      "inventory_sha256": "1a949ecd997d640a7c0068e6269fe071e9099c1c89cb054e842f3eade399e80c"
     },
     {
       "id": "documentation-policy",
