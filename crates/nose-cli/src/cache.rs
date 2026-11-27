@@ -18,6 +18,8 @@
 //! `nose.invalidation/v1` closure with exact reasons and explicit over-invalidation.
 
 mod admin;
+mod capture;
+pub(crate) use capture::{capture_source_digest, AnalysisCaptureCache};
 #[cfg(all(test, unix))]
 mod basic_tests;
 mod detection;

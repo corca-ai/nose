@@ -6,6 +6,9 @@ break.
 
 ## [Unreleased]
 
+- Reuse complete `--save-analysis` results with `--cache-dir` when all source
+  contents, membership, analysis settings and the engine binary are unchanged.
+  Large captures can skip repeated feature loading and global comparison.
 - Reduce cold-analysis proof lookup overhead with faster internal span and
   lexical indexes and direct resolution of positional evidence ids. Preserve
   sparse/duplicate-id precedence and live dependency validation.

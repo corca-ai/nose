@@ -1,3 +1,5 @@
+#[path = "analysis_changes/capture_cache.rs"]
+mod capture_cache;
 #[path = "analysis_changes/handles.rs"]
 mod handles;
 #[path = "analysis_changes/inline_suppression.rs"]

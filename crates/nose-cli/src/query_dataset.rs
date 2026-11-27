@@ -47,6 +47,16 @@ pub(super) fn build_query_dataset(
     recovery_terms: &[String],
 ) -> Result<QueryDataset> {
     let (settings, semantic_packs) = resolve_query_settings(args, QUERY_DEFAULT_MODES)?;
+    build_query_dataset_with_settings(args, refs, recovery_terms, settings, semantic_packs)
+}
+
+pub(super) fn build_query_dataset_with_settings(
+    args: &QueryArgs,
+    refs: &[&std::path::Path],
+    recovery_terms: &[String],
+    settings: QuerySettings,
+    semantic_packs: nose_semantics::SemanticPackSet,
+) -> Result<QueryDataset> {
     let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines)?;
     let detector = detection_engine(settings.channels, &opts);
     let detection = query_detect_report(QueryDetectRequest {
@@ -263,7 +273,10 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionRepor
         accepted_coverage,
     } = request;
     print_invalidation(invalidation_report.as_ref());
-    let scope = QueryScope::from_corpus(&corpus);
+    let mut scope = QueryScope::from_corpus(&corpus);
+    if let Some(context) = &line_context {
+        scope.capture_sources = cache::capture_source_digest(&context.source_files);
+    }
     let semantic_pack_evidence =
         nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
     let semantic_pack_near = nose_semantics::SemanticPackNearRegistry::build(

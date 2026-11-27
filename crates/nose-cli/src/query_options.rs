@@ -337,6 +337,8 @@ pub(crate) enum FailOn {
 /// `.gitignore` exists to skip, slow on exactly the big repos where it matters.)
 pub(crate) struct QueryScope {
     pub(crate) files: usize,
+    /// Source identities actually consumed, for exact complete-capture reuse.
+    pub(crate) capture_sources: Option<nose_il::ContentDigest>,
     pub(crate) skipped_sources: Vec<nose_il::SourceDiagnostic>,
     /// `(language name, file count)`, largest first.
     pub(crate) langs: Vec<(&'static str, usize)>,
@@ -362,12 +364,14 @@ impl QueryScope {
         langs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
         QueryScope {
             files,
+            capture_sources: None,
             langs,
             skipped_sources: Vec::new(),
         }
     }
 
     pub(crate) fn with_sources(mut self, sources: &[crate::cache::CachedSourceFile]) -> Self {
+        self.capture_sources = crate::cache::capture_source_digest(sources);
         self.skipped_sources = sources
             .iter()
             .filter_map(|source| {

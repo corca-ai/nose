@@ -29,6 +29,7 @@ pub(super) enum ArtifactStage {
     ResolvedIl = 4,
     UnitsSyntax = 5,
     StateRecord = 6,
+    AnalysisCapture = 7,
 }
 
 impl ArtifactStage {
@@ -40,6 +41,7 @@ impl ArtifactStage {
             4 => Self::ResolvedIl,
             5 => Self::UnitsSyntax,
             6 => Self::StateRecord,
+            7 => Self::AnalysisCapture,
             _ => return None,
         })
     }
@@ -52,6 +54,7 @@ impl ArtifactStage {
             Self::ResolvedIl => "resolved-il",
             Self::UnitsSyntax => "units-syntax",
             Self::StateRecord => "state-record",
+            Self::AnalysisCapture => "analysis-capture",
         }
     }
 }
@@ -89,7 +92,7 @@ pub(super) struct LayeredCas {
     written_bytes: Option<Arc<AtomicU64>>,
     write_portable_il: bool,
     read_existing: bool,
-    ready_prefixes: [OnceLock<std::io::Result<()>>; 6 * 256],
+    ready_prefixes: [OnceLock<std::io::Result<()>>; ArtifactStage::AnalysisCapture as usize * 256],
 }
 
 impl LayeredCas {
