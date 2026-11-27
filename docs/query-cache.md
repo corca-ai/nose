@@ -62,7 +62,7 @@ Use a new output filename on every invocation; captures never overwrite files.
 Capture identities bind the working directory, root spelling, included paths,
 languages, content and skip diagnostics, resolved analysis settings, candidate
 budget, semantic packs and lock, scoring environment, and executable bytes.
-Timing and cache diagnostics do not invalidate results. Changes to source content
+`NOSE_TIME` and `NOSE_CACHE_STATS` do not invalidate results. Changes to source content
 or membership run the existing analysis pipeline and publish a new capture only
 when its consumed source identity still matches the current inventory. External
 semantic evidence producers keep the ordinary analysis path because their inputs
@@ -70,8 +70,10 @@ can extend beyond the discovered source corpus.
 
 This accelerates repeated identical captures. First captures and captures after
 code changes still perform analysis; this is not a changed-file-only detector.
-Capture artifacts share the checksums, atomic publication, size budget and
-administration commands of the existing cache.
+Corpora containing C retain the ordinary path as well: C lowering can read local
+quoted headers outside the admitted inventory, so that inventory alone cannot
+certify a complete result. Capture artifacts share the checksums, atomic
+publication, size budget and administration commands of the existing cache.
 
 ## Storage and recovery
 

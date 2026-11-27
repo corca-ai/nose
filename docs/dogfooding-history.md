@@ -2425,3 +2425,24 @@ to main, SHA-256
 Restore its existing keep-separate judgment without raising the budget or
 accepting new duplicate implementations. The three complete comparison queries
 are retained locally as `/tmp/nose-1014-self-{old-tree,base-engine,head-engine}.json`.
+
+## Complete capture cache (2026-11-27)
+
+The current source has eighteen substantial default near families at value
+threshold forty, within the unchanged budget of twenty. Frozen parent
+`91c040da` and capture candidate `6d826951` produce byte-identical full near-query
+JSON on this same source tree. These are source-corpus navigation changes,
+not new detector behavior or new accepted implementations.
+
+Adding the capture-cache test-module declaration relocates the reviewed Project
+harness family from `b67f35c00a438b60` to `d5b71caad2f11878`. The Project
+implementation bodies remain byte-identical to the parent; the extracted body
+SHA-256 is `0955cde3b877d4c79e3826dab2f23d179900e23c7a9df2d777a62f8fc2b63989`.
+The analysis and region test harnesses keep their existing separate contracts.
+
+The reviewed integer/float policy pair `60f0dd6d98436972` falls below the
+threshold for both binaries. Its file retains SHA-256
+`53404525b09a0efaee9a1496bfeba3f122337e8fcdb442a23313da8c49d111de`.
+Remove that stale navigation ID without changing the numeric-policy judgment
+or raising the budget. Full queries are retained under
+`target/perf-design/capture-dogfood-{parent,current}.json`.

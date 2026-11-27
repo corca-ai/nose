@@ -371,7 +371,7 @@ impl QueryScope {
     }
 
     pub(crate) fn with_sources(mut self, sources: &[crate::cache::CachedSourceFile]) -> Self {
-        self.capture_sources = Some(crate::cache::capture_source_digest(sources));
+        self.capture_sources = crate::cache::capture_source_digest(sources);
         self.skipped_sources = sources
             .iter()
             .filter_map(|source| {

@@ -102,7 +102,7 @@ impl AnalysisCaptureCache {
     fn current_sources(&self) -> Option<ContentDigest> {
         let roots = self.roots.iter().map(PathBuf::as_path).collect::<Vec<_>>();
         let sources = source::discover_source_files(&roots, &self.exclude, self.policy)?;
-        Some(capture_source_digest(&sources))
+        capture_source_digest(&sources)
     }
 
     fn key(&self, sources: ContentDigest) -> ArtifactKey {
@@ -114,7 +114,16 @@ impl AnalysisCaptureCache {
     }
 }
 
-pub(crate) fn capture_source_digest(sources: &[CachedSourceFile]) -> ContentDigest {
+pub(crate) fn capture_source_digest(sources: &[CachedSourceFile]) -> Option<ContentDigest> {
+    // C lowering can read same-directory quote includes outside the admitted
+    // corpus (including excluded headers). Until those reads have explicit
+    // dependency identities, the source inventory cannot certify a whole result.
+    if sources
+        .iter()
+        .any(|source| source.lang == nose_il::Lang::C && source.skip_reason.is_none())
+    {
+        return None;
+    }
     let mut rows = sources
         .iter()
         .map(|source| {
@@ -135,7 +144,7 @@ pub(crate) fn capture_source_digest(sources: &[CachedSourceFile]) -> ContentDige
         .iter()
         .map(|row| row.as_bytes().as_slice())
         .collect::<Vec<_>>();
-    ContentDigest::derive(b"nose.capture-corpus.v1", &rows)
+    Some(ContentDigest::derive(b"nose.capture-corpus.v1", &rows))
 }
 
 #[cfg(test)]
@@ -193,5 +202,14 @@ mod tests {
         cache.store(cache.current_sources(), b"larger than the budget");
         assert!(cache.load().is_none());
         assert!(super::super::admin::status(&cache.dir, cache.max_bytes).bytes <= 1);
+    }
+
+    #[test]
+    fn local_c_include_inputs_do_not_certify_capture_reuse() {
+        let (project, cache) = cache();
+        std::fs::write(project.0.join("source.c"), "#include \"types.inc\"\n").unwrap();
+        assert!(cache.current_sources().is_none());
+        cache.store(None, b"uncertified capture");
+        assert!(cache.load().is_none());
     }
 }

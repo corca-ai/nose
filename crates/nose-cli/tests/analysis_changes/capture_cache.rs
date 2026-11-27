@@ -173,6 +173,19 @@ fn suppression_and_exclusion_policies_invalidate_capture_results() {
     );
 }
 
+#[test]
+fn c_includes_outside_the_inventory_keep_the_existing_analysis_path() {
+    let p = Project::new();
+    p.write("types.inc", "typedef unsigned char byte_t;\n");
+    p.write("pack.c", "#include \"types.inc\"\nunsigned short load(const byte_t *p) {\n    return p[0] | (p[1] << 8);\n}\n");
+    let (cold, out) = capture(&p, "cold.json", true, &[]);
+    hit(&out, false);
+    let (warm, out) = capture(&p, "warm.json", true, &[]);
+    hit(&out, false);
+    assert_eq!(cold, warm);
+    assert_eq!(warm, capture(&p, "clean.json", false, &[]).0);
+}
+
 #[cfg(unix)]
 #[test]
 fn unreadable_sources_do_not_reuse_a_previous_capture() {

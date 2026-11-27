@@ -275,7 +275,7 @@ fn query_detect_report(request: QueryDetectRequest<'_>) -> Result<DetectionRepor
     print_invalidation(invalidation_report.as_ref());
     let mut scope = QueryScope::from_corpus(&corpus);
     if let Some(context) = &line_context {
-        scope.capture_sources = Some(cache::capture_source_digest(&context.source_files));
+        scope.capture_sources = cache::capture_source_digest(&context.source_files);
     }
     let semantic_pack_evidence =
         nose_semantics::SemanticPackEvidenceIndex::build(semantic_packs, &corpus);
