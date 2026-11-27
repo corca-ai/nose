@@ -44,3 +44,6 @@ serde_json = { workspace = true }
 
 [lints]
 workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+sha2 = { workspace = true, features = ["asm"] }

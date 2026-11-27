@@ -19,3 +19,6 @@ test-support = []
 
 [lints]
 workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+sha2 = { workspace = true, features = ["asm"] }
